@@ -79,7 +79,7 @@ jobs:
       - name: Install (windows)
         run: |
           python setup.py build
-          copy OpenBLAS-${{ env.OPENBLAS_VERSION }}-x64\bin\libopenblas.dll build\lib.win-amd64-${{ matrix.python-version}}
+          copy OpenBLAS-${{ env.OPENBLAS_VERSION }}-x64/bin/libopenblas.dll build/lib.win-amd64-${{ matrix.python-version}}
           python setup.py bdist_wheel
           pip install .
         shell: cmd
