@@ -245,8 +245,10 @@ static PyObject *simplex(PyObject *self, PyObject *args, PyObject *kwrds)
                 if (PYSTRING_CHECK(value)){
                     if (!PYSTRING_COMPARE(value, "GLP_PRIMAL"))
                         smcp.meth = GLP_PRIMAL;
+#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35
                     else if (!PYSTRING_COMPARE(value, "GLP_DUAL"))
                         smcp.meth = GLP_DUAL;
+#endif
                     else if (!PYSTRING_COMPARE(value, "GLP_DUALP"))
                         smcp.meth = GLP_DUALP;
                     else
@@ -639,8 +641,10 @@ static PyObject *integer(PyObject *self, PyObject *args,
                         iocp.br_tech = GLP_BR_MFV;
                     else if (!PYSTRING_COMPARE(value, "GLP_BR_DTH"))
                         iocp.br_tech = GLP_BR_DTH;
+#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 40
                     else if (!PYSTRING_COMPARE(value, "GLP_BR_PCH"))
                         iocp.br_tech = GLP_BR_PCH;
+#endif
                     else
                         PyErr_WarnEx(NULL, "replacing "
                             "glpk.options['br_tech'] with default value",
@@ -667,6 +671,7 @@ static PyObject *integer(PyObject *self, PyObject *args,
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['bt_tech'] "
                         "with default value", 1);
+#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35
             else if (!PYSTRING_COMPARE(key, "pp_tech"))
                 if (PYSTRING_CHECK(value)){
                     if (!PYSTRING_COMPARE(value, "GLP_PP_NONE"))
@@ -683,6 +688,8 @@ static PyObject *integer(PyObject *self, PyObject *args,
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['pp_tech'] "
                         "with default value", 1);
+#endif
+#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 40
             else if (!PYSTRING_COMPARE(key, "fp_heur"))
                 if (PYSTRING_CHECK(value)){
                     if (!PYSTRING_COMPARE(value, "GLP_ON"))
@@ -697,6 +704,7 @@ static PyObject *integer(PyObject *self, PyObject *args,
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['fp_heur'] "
                         "with default value", 1);
+#endif
 #if 0
             else if (!PYSTRING_COMPARE(key, "ps_heur"))
                 if (PYSTRING_CHECK(value)){
@@ -719,6 +727,7 @@ static PyObject *integer(PyObject *self, PyObject *args,
                     PyErr_WarnEx(NULL, "replacing "
                         "glpk.options['ps_tm_lim'] with default value", 1);
 #endif
+#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35
             else if (!PYSTRING_COMPARE(key, "gmi_cuts"))
                 if (PYSTRING_CHECK(value)){
                     if (!PYSTRING_COMPARE(value, "GLP_ON"))
@@ -775,6 +784,7 @@ static PyObject *integer(PyObject *self, PyObject *args,
                 else
                     PyErr_WarnEx(NULL, "replacing "
                         "glpk.options['clq_cuts'] with default value", 1);
+#endif
             else if (!PYSTRING_COMPARE(key, "tol_int"))
                 if (PyFloat_Check(value))
                     iocp.tol_int = PyFloat_AsDouble(value);
@@ -787,12 +797,14 @@ static PyObject *integer(PyObject *self, PyObject *args,
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['tol_obj'] "
                         "with default value", 1);
+#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35
             else if (!PYSTRING_COMPARE(key, "mip_gap"))
                 if (PyFloat_Check(value))
                     iocp.mip_gap = PyFloat_AsDouble(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['mip_gap'] "
                         "with default value", 1);
+#endif
             else if (!PYSTRING_COMPARE(key, "tm_lim"))
                 if (PYINT_CHECK(value))
                     iocp.tm_lim = PYINT_AS_LONG(value);
@@ -817,6 +829,7 @@ static PyObject *integer(PyObject *self, PyObject *args,
             else if (!PYSTRING_COMPARE(key, "cb_info"))
                 PyErr_WarnEx(NULL, "replacing glpk.options['cb_info'] "
                         "with default value", 1);
+#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35
             else if (!PYSTRING_COMPARE(key, "cb_size"))
                 if (PYINT_CHECK(value))
                     iocp.cb_size = PYINT_AS_LONG(value);
@@ -854,11 +867,14 @@ static PyObject *integer(PyObject *self, PyObject *args,
                     PyErr_WarnEx(NULL, "replacing "
                         "glpk.options['binarize'] with default value", 1);
             }
+#endif
         }
 
     if (param != opts)
         Py_DECREF(param);
+#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35
     iocp.presolve = GLP_ON;
+#endif
 
     if (IntSet) {
         PyObject *iter = PySequence_Fast(IntSet,
@@ -910,7 +926,9 @@ static PyObject *integer(PyObject *self, PyObject *args,
     switch (info){
 
         case 0:
+#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35
         case GLP_EMIPGAP:
+#endif
         case GLP_ETMLIM:
             switch(status){
                 case GLP_OPT:     /* x is optimal */
