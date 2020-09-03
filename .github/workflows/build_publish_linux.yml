@@ -1,8 +1,10 @@
 name: Publish Manylinux
 
 on:
-  release:
-    types: [created]
+  push:
+    branches: [ master ]
+  #release:
+  #  types: [created]
 
 
 jobs:    
@@ -35,8 +37,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install wheel twine
 
-      - name: Build manylinux Python wheels
+      - name: Build manylinux1 Python wheels
+        uses: RalfG/python-wheels-manylinux-build@v0.3.1-manylinux1_x86_64
+        with:
+          python-versions: 'cp27-cp27m cp27-cp27mu cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38'
+          build-requirements: ''
+          system-packages: 'openblas-devel fftw-devel glpk-devel gsl-devel suitesparse-devel'
+
+      - name: Build manylinux2010 Python wheels
         uses: RalfG/python-wheels-manylinux-build@v0.3.1-manylinux2010_x86_64
+        with:
+          python-versions: 'cp27-cp27m cp27-cp27mu cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38'
+          build-requirements: ''
+          system-packages: 'openblas-devel fftw-devel glpk-devel gsl-devel suitesparse-devel'
+
+      - name: Build manylinux2014 Python wheels
+        uses: RalfG/python-wheels-manylinux-build@v0.3.1-manylinux2014_x86_64
         with:
           python-versions: 'cp27-cp27m cp27-cp27mu cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38'
           build-requirements: ''
@@ -47,9 +63,9 @@ jobs:
           name: linux-wheels
           path: dist/*-manylinux*.whl
 
-      - name: Publish wheels to PyPI
-        env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: |
-          twine upload dist/*-manylinux*.whl
+      #- name: Publish wheels to PyPI
+      #  env:
+      #    TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+      #    TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      #  run: |
+      #    twine upload dist/*-manylinux*.whl
