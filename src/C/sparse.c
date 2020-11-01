@@ -3070,21 +3070,6 @@ spmatrix_reduce(spmatrix* self)
 #endif
 }
 
-static PyMethodDef spmatrix_methods[] = {
-    {"real", (PyCFunction)spmatrix_real, METH_NOARGS,
-        "Returns real part of sparse matrix"},
-    {"imag", (PyCFunction)spmatrix_imag, METH_NOARGS,
-        "Returns imaginary part of sparse matrix"},
-    {"trans", (PyCFunction)spmatrix_trans, METH_NOARGS,
-        "Returns the matrix transpose"},
-    {"ctrans", (PyCFunction)spmatrix_ctrans, METH_NOARGS,
-        "Returns the matrix conjugate transpose"},
-    {"__reduce__", (PyCFunction)spmatrix_reduce, METH_NOARGS,
-        "__reduce__() -> (cls, state)"},
-    {NULL}  /* Sentinel */
-};
-
-
 static int
 bsearch_int(int_t *lower, int_t *upper, int_t key, int_t *k) {
 
@@ -3138,7 +3123,7 @@ int spmatrix_getitem_ij(spmatrix *A, int_t i, int_t j, number *value)
   }
 }
 
-static void
+static int
 spmatrix_setitem_ij(spmatrix *A, int_t i, int_t j, number *value) {
 
   int_t k, l;
@@ -3147,7 +3132,7 @@ spmatrix_setitem_ij(spmatrix *A, int_t i, int_t j, number *value) {
       &(SP_ROW(A)[SP_COL(A)[j+1]-1]),i, &k)) {
 
     write_num[SP_ID(A)](SP_VAL(A), SP_COL(A)[j] + k, value, 0);
-    return;
+    return 0;
   }
   k += SP_COL(A)[j];
 
@@ -3161,7 +3146,45 @@ spmatrix_setitem_ij(spmatrix *A, int_t i, int_t j, number *value) {
 
   SP_ROW(A)[k] = i;
   write_num[SP_ID(A)](SP_VAL(A), k, value, 0);
+
+  return 0;
 }
+static int spmatrix_additem_ij(spmatrix *A, int_t i, int_t j, number *value) {
+    /*
+     * spmatrix_additem_ij
+     * @author: Nichlos West, CURENT
+     */
+    number val;
+
+    if (OUT_RNG(i, SP_NROWS(A)) || OUT_RNG(j, SP_NCOLS(A))) {
+        PY_ERR_INT(PyExc_IndexError, "index out of range");
+    }
+
+    i = CWRAP(i, SP_NROWS(A));
+    j = CWRAP(j, SP_NCOLS(A));
+
+    if (!(spmatrix_getitem_ij(A, i, j, &val) || realloc_ccs(A->obj, SP_NNZ(A)+1))) {
+        PY_ERR_INT(PyExc_MemoryError, "insufficient memory");
+    }
+
+    switch (SP_ID(A)) {
+    case INT:
+        val.i += value->i;
+        break;
+
+    case DOUBLE:
+        val.d += value->d;
+        break;
+
+    case COMPLEX:
+        val.z += value->z;
+        break;
+    }
+
+    spmatrix_setitem_ij(A, i, j, &val);
+    return 0;
+}
+
 
 static int
 spmatrix_length(spmatrix *self)
@@ -4464,6 +4487,202 @@ static int spmatrix_nonzero(matrix *self)
   return res;
 }
 
+static inline matrix *array_like_to_matrix(PyObject *o, int id) {
+    matrix *ret = NULL;
+
+    if (Matrix_Check(o)) {
+        Py_INCREF(o);
+        ret = (matrix *)o;
+    } else if (PyObject_CheckBuffer(o)) {
+        int ndim = 0;
+        ret = Matrix_NewFromPyBuffer(o, id, &ndim);
+    } else if (PySequence_Check(o)) {
+        ret = Matrix_NewFromSequence(o, id);
+    } else {
+        PY_ERR_TYPE("Argument must be either a sequence type, a matrix, or a number");
+    }
+
+    return ret;
+}
+
+static PyObject *spmatrix_ip_apply(PyObject *self, PyObject *args,
+                                   int(*func)(spmatrix *, int_t, int_t, number *)) {
+    /*
+     * spmatrix_ip_apply
+     * @author: Nichlos West, CURENT
+     */
+    PyObject *Ilt = NULL, *Jlt = NULL, *Vt = NULL;
+    matrix *Il, *Jl, *V;
+    spmatrix *A = (spmatrix *)self;
+
+    if (!PyArg_ParseTuple(args, "OOO:spmatrix", &Vt, &Ilt, &Jlt)) {
+        return NULL;
+    }
+
+    int_t nrows, ncols;
+    number val;
+    int id, isscalar;
+
+    isscalar = 1;
+
+    nrows = SP_NROWS(A);
+    ncols = SP_NCOLS(A);
+    id = SP_ID(A);
+
+    if (PyLong_Check(Vt)) {
+        val.i = PyLong_AsLong(Vt);
+
+        if (id >= DOUBLE) {
+            val.d = (double)val.i;
+        }
+
+        if (id >= COMPLEX) {
+#ifndef _MSC_VER
+            val.z = (double complex)val.d;
+#else
+            val.z = _Cbuild(val.d, 0.0);
+#endif
+        }
+    } else if (PyFloat_Check(Vt)) {
+        if (DOUBLE > id) {
+            PY_ERR_TYPE("scalar V type does not match with the spmatrix");
+        }
+
+        val.d = PyFloat_AsDouble(Vt);
+
+        if (id >= COMPLEX) {
+#ifndef _MSC_VER
+            val.z = (double complex)val.d;
+#else
+            val.z = _Cbuild(val.d, 0.0);
+#endif
+        }
+    } else if (PyComplex_Check(Vt)) {
+        if (COMPLEX > id) {
+            PY_ERR_TYPE("scalar V type does not match with the spmatrix");
+        }
+
+        Py_complex c = PyComplex_AsCComplex(Vt);
+
+#ifndef _MSC_VER
+        val.z = c.real + I * c.imag;
+#else
+        val.z = _Cbuild(c.real, c.imag);
+#endif
+    } else {
+        isscalar = 0;
+    }
+
+    int_t i, j;
+
+    if (PyLong_Check(Ilt) && PyLong_Check(Jlt)) {
+        if (!isscalar) {
+            PY_ERR_TYPE("Can't mix nonscalar values with scalar index");
+        }
+
+        i = PyLong_AsLong(Ilt);
+        j = PyLong_AsLong(Jlt);
+
+        spmatrix_additem_ij(A, i, j, &val);
+
+        Py_INCREF(self);
+
+        return self;
+    }
+
+    Il = array_like_to_matrix(Ilt, INT);
+    if (Il == NULL) {
+        return NULL;
+    }
+
+    Jl = array_like_to_matrix(Jlt, INT);
+    if (Il == NULL) {
+        Py_DECREF(Il);
+
+        return NULL;
+    }
+
+    if (MAT_ID(Il) != INT || MAT_ID(Jl) != INT) {
+        Py_DECREF(Il);
+        Py_DECREF(Jl);
+
+        PY_ERR_TYPE("index sets I and J must be integers");
+    }
+
+    if (MAT_LGT(Il) != MAT_LGT(Jl)) {
+        Py_DECREF(Il);
+        Py_DECREF(Jl);
+
+        PY_ERR_TYPE("index sets I and J must be of same length");
+    }
+
+    for (int_t k = 0; k < MAT_LGT(Il); k++) {
+        if (MAT_BUFI(Il)[k] > nrows || MAT_BUFI(Jl)[k] > ncols) {
+            Py_DECREF(Il);
+            Py_DECREF(Jl);
+
+            PY_ERR_TYPE("index out of bound error");
+        }
+    }
+
+    if (!isscalar) {
+        V = array_like_to_matrix(Vt, id);
+        if (V == NULL) {
+            Py_DECREF(Il);
+            Py_DECREF(Jl);
+
+            return NULL;
+        }
+
+        if (MAT_ID(V) > id) {
+            Py_DECREF(Il);
+            Py_DECREF(Jl);
+            Py_DECREF(V);
+
+            PY_ERR_TYPE("matrix V type does not match with the spmatrix");
+        }
+
+        if (MAT_LGT(V) != MAT_LGT(Il)) {
+            Py_DECREF(Il);
+            Py_DECREF(Jl);
+            Py_DECREF(V);
+
+            PY_ERR_TYPE("V has a different length than I or J");
+        }
+
+        for (int_t k = 0; k < MAT_LGT(Il); k++) {
+            i = MAT_BUFI(Il)[k];
+            j = MAT_BUFI(Jl)[k];
+
+            convert_num[id](&val, V, 0, k);
+            func(A, i, j, &val);
+        }
+
+        Py_DECREF(V);
+    } else {
+        for (int_t k = 0; k < MAT_LGT(Il); k++) {
+            i = MAT_BUFI(Il)[k];
+            j = MAT_BUFI(Jl)[k];
+
+            func(A, i, j, &val);
+        }
+    }
+
+    Py_DECREF(Il);
+    Py_DECREF(Jl);
+
+    Py_INCREF(self);
+
+    return self;
+}
+
+static PyObject *spmatrix_ipset(PyObject *self, PyObject *args) {
+    return spmatrix_ip_apply(self, args, spmatrix_setitem_ij);
+}
+
+static PyObject *spmatrix_ipadd(PyObject *self, PyObject *args) {
+    return spmatrix_ip_apply(self, args, spmatrix_additem_ij);
+}
 
 static PyNumberMethods spmatrix_as_number = {
     (binaryfunc)spmatrix_add,    /*nb_add*/
@@ -4588,6 +4807,25 @@ spmatrixiter_next(spmatrixiter *it)
 
   return num2PyObject[SP_ID(it->mObj)](SP_VAL(it->mObj), it->index++);
 }
+
+static PyMethodDef spmatrix_methods[] = {
+    {"real", (PyCFunction)spmatrix_real, METH_NOARGS,
+        "Returns real part of sparse matrix"},
+    {"imag", (PyCFunction)spmatrix_imag, METH_NOARGS,
+        "Returns imaginary part of sparse matrix"},
+    {"ipadd", (PyCFunction) spmatrix_ipadd, METH_VARARGS,
+        "Perform efficient in-place add for sparse matrix"},
+    {"ipset", (PyCFunction) spmatrix_ipset, METH_VARARGS,
+        "Perform efficient in-place set for sparse matrix"},
+    {"trans", (PyCFunction)spmatrix_trans, METH_NOARGS,
+        "Returns the matrix transpose"},
+    {"ctrans", (PyCFunction)spmatrix_ctrans, METH_NOARGS,
+        "Returns the matrix conjugate transpose"},
+    {"__reduce__", (PyCFunction)spmatrix_reduce, METH_NOARGS,
+        "__reduce__() -> (cls, state)"},
+    {NULL}  /* Sentinel */
+};
+
 
 PyTypeObject spmatrixiter_tp = {
 #if PY_MAJOR_VERSION >= 3
