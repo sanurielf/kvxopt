@@ -20,16 +20,19 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [3.5, 3.6, 3.7, 3.8]
+        python-version: [3.5, 3.6, 3.7, 3.8, 3.9]
         suite-sparse: [src_suitesparse]
         ARCH: [x64, x86]
         include:
         - ARCH: x64
           VC_TARGET: 64
           PYTHON_TARGET: win-amd64
+          OPENBLAS_SHA256: a307629479260ebfed057a3fc466d2be83a2bb594739a99c06ec830173273135
+
         - ARCH: x86
           VC_TARGET: 32
           PYTHON_TARGET: win32
+          OPENBLAS_SHA256: 7eab2be38e4c79f0ce496e7cb3ae28be457aef1b21e70eb7e32147b479b7bb57
 
 
     steps:
@@ -44,6 +47,8 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
+          install: coreutils unzip
+
 
       - name: Install dependencies
         run: |
@@ -52,11 +57,15 @@ jobs:
 
 
       - name: Download openblas
+        shell: msys2 {0}
         run: |
-            Invoke-WebRequest  https://github.com/xianyi/OpenBLAS/releases/download/v${{ env.OPENBLAS_VERSION }}/OpenBLAS-${{ env.OPENBLAS_VERSION }}-${{ matrix.ARCH }}.zip -OutFile OpenBLAS-${{ env.OPENBLAS_VERSION }}-${{ matrix.ARCH }}.zip
-            Invoke-WebRequest https://raw.githubusercontent.com/xianyi/OpenBLAS/v${{ env.OPENBLAS_VERSION }}/LICENSE -OutFile OpenBLAS_LINCENSE
-            Expand-Archive OpenBLAS-${{ env.OPENBLAS_VERSION }}-${{ matrix.ARCH }}.zip
-            echo "KVXOPT_BLAS_LIB_DIR=${{ github.workspace}}/OpenBLAS-${{ env.OPENBLAS_VERSION }}-${{ matrix.ARCH }}/lib" >> $GITHUB_ENV
+            wget https://github.com/xianyi/OpenBLAS/releases/download/v${OPENBLAS_VERSION}/OpenBLAS-${OPENBLAS_VERSION}-${{matrix.ARCH}}.zip
+            wget https://raw.githubusercontent.com/xianyi/OpenBLAS/v${OPENBLAS_VERSION}/LICENSE  -O OpenBLAS_LINCENSE
+            echo "${{matrix.OPENBLAS_SHA256}}  OpenBLAS-${OPENBLAS_VERSION}-${{ matrix.ARCH }}.zip" > OpenBLAS.sha256
+            sha256sum -c OpenBLAS.sha256
+            mkdir OpenBLAS
+            unzip OpenBLAS-${OPENBLAS_VERSION}-${{matrix.ARCH}}.zip -d OpenBLAS/
+            echo "KVXOPT_BLAS_LIB_DIR=${{ github.workspace}}/OpenBLAS/lib" >> $GITHUB_ENV
             echo "KVXOPT_LAPACK_LIB=libopenblas" >> $GITHUB_ENV
             echo "KVXOPT_BLAS_LIB=libopenblas" >> $GITHUB_ENV
 
@@ -65,6 +74,7 @@ jobs:
         run: |
             wget https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/v${{ env.SUITESPARSE_VERSION }}.tar.gz
             echo "${SUITESPARSE_SHA256}  v${{ env.SUITESPARSE_VERSION }}.tar.gz" > SuiteSparse.sha256
+            shasum -a 256 -c SuiteSparse.sha256
             tar -xf v${{ env.SUITESPARSE_VERSION }}.tar.gz
             echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
 
@@ -77,7 +87,7 @@ jobs:
       - name: Install (windows)
         run: |
           python setup.py build
-          copy OpenBLAS-${{ env.OPENBLAS_VERSION }}-${{ matrix.ARCH }}\bin\libopenblas.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
+          copy ${{ github.workspace}}\OpenBLAS\bin\libopenblas.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
           copy OpenBLAS_LINCENSE build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
           python setup.py bdist_wheel
         shell: cmd
