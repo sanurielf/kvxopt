@@ -1,8 +1,11 @@
 name: Publish Manylinux
 
 on:
+  push:
+    branches: [ master ]
   release:
     types: [created]
+
 
 
 jobs:    
@@ -60,6 +63,23 @@ jobs:
         with:
           name: linux-wheels
           path: dist/*-manylinux*.whl
+
+      - name: Publish wheels to PyPI test
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_TEST_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
+        run: |
+          twine upload --repository testpypi dist/*-manylinux*.whl
+        if: ${{ github.event_name == 'push' }}
+
+      - name: Publish wheels to PyPI
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          twine upload dist/*-manylinux*.whl
+        if: ${{ github.event_name == 'release' }}
+
 
       #- name: Publish wheels to PyPI
       #  env:
