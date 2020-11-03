@@ -56,9 +56,9 @@ jobs:
             Invoke-WebRequest  https://github.com/xianyi/OpenBLAS/releases/download/v${{ env.OPENBLAS_VERSION }}/OpenBLAS-${{ env.OPENBLAS_VERSION }}-${{ matrix.ARCH }}.zip -OutFile OpenBLAS-${{ env.OPENBLAS_VERSION }}-${{ matrix.ARCH }}.zip
             Invoke-WebRequest https://raw.githubusercontent.com/xianyi/OpenBLAS/v${{ env.OPENBLAS_VERSION }}/LICENSE -OutFile OpenBLAS_LINCENSE
             Expand-Archive OpenBLAS-${{ env.OPENBLAS_VERSION }}-${{ matrix.ARCH }}.zip
-            echo "::set-env name=KVXOPT_BLAS_LIB_DIR::${{ github.workspace}}/OpenBLAS-${{ env.OPENBLAS_VERSION }}-${{ matrix.ARCH }}/lib" 
-            echo "::set-env name=KVXOPT_LAPACK_LIB::libopenblas" 
-            echo "::set-env name=KVXOPT_BLAS_LIB::libopenblas" 
+            echo "KVXOPT_BLAS_LIB_DIR=${{ github.workspace}}/OpenBLAS-${{ env.OPENBLAS_VERSION }}-${{ matrix.ARCH }}/lib" >> $GITHUB_ENV
+            echo "KVXOPT_LAPACK_LIB=libopenblas" >> $GITHUB_ENV
+            echo "KVXOPT_BLAS_LIB=libopenblas" >> $GITHUB_ENV
 
       - name: Config suite-sparse source
         shell: msys2 {0}
@@ -66,7 +66,7 @@ jobs:
             wget https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/v${{ env.SUITESPARSE_VERSION }}.tar.gz
             echo "${SUITESPARSE_SHA256}  v${{ env.SUITESPARSE_VERSION }}.tar.gz" > SuiteSparse.sha256
             tar -xf v${{ env.SUITESPARSE_VERSION }}.tar.gz
-            echo "::set-env name=KVXOPT_SUITESPARSE_SRC_DIR::${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" 
+            echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
 
 
       - name: Cofigure Visual Studio 2019

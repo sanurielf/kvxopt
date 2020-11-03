@@ -3236,7 +3236,11 @@ static int spmatrix_additem_ij(spmatrix *A, int_t i, int_t j, number *value) {
             break;
 
         case COMPLEX:
+#ifndef _MSC_VER
             val.z += value->z;
+#else
+            val.z = _Cbuild(creal(value->z)+creal(val.z),cimag(value->z)+cimag(val.z));
+#endif
             break;
     }
 
