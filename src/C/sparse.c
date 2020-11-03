@@ -137,7 +137,7 @@ static int comp_complex(const void *x, const void *y) {
 #define spmatrix_getitem_i(O,i,v) \
     spmatrix_getitem_ij(O,i%SP_NROWS(O),i/SP_NROWS(O),v)
 #define spmatrix_setitem_i(O,i,v) \
-    spmatrix_setitem_ij(O,i%SP_NROWS(O),i/SP_NROWS(O),v)
+    spmatrix_SETITEM_IJ(O,i%SP_NROWS(O),i/SP_NROWS(O),v)
 
 #define free_lists_exit(argI,argJ,I,J,ret) { \
     if (argI && !Matrix_Check(argI)) { Py_XDECREF(I); } \
@@ -3123,33 +3123,6 @@ int spmatrix_getitem_ij(spmatrix *A, int_t i, int_t j, number *value)
   }
 }
 
-static int
-spmatrix_setitem_ij(spmatrix *A, int_t i, int_t j, number *value) {
-
-  int_t k, l;
-
-  if (bsearch_int(&(SP_ROW(A)[SP_COL(A)[j]]),
-      &(SP_ROW(A)[SP_COL(A)[j+1]-1]),i, &k)) {
-
-    write_num[SP_ID(A)](SP_VAL(A), SP_COL(A)[j] + k, value, 0);
-    return 0;
-  }
-  k += SP_COL(A)[j];
-
-  for (l=j+1; l<SP_NCOLS(A)+1; l++) SP_COL(A)[l]++;
-
-  /* split rowind and value lists at position 'k' and insert element */
-  for (l=SP_NNZ(A)-1; l>k; l--) {
-    SP_ROW(A)[l] = SP_ROW(A)[l-1];
-    write_num[SP_ID(A)](SP_VAL(A),l,SP_VAL(A),l-1);
-  }
-
-  SP_ROW(A)[k] = i;
-  write_num[SP_ID(A)](SP_VAL(A), k, value, 0);
-
-  return 0;
-}
-
 void
 spmatrix_setitem_ijk(spmatrix *A, int_t i, int_t j, int_t k, number *value) {
 
@@ -3180,6 +3153,57 @@ spmatrix_setitem_ijk(spmatrix *A, int_t i, int_t j, int_t k, number *value) {
     SP_ROW(A)[k] = i;
     write_num[SP_ID(A)](SP_VAL(A), k, value, 0);
 }
+
+static int
+spmatrix_SETITEM_IJ(spmatrix *A, int_t i, int_t j, number *value) {
+
+  int_t k, l;
+
+  if (bsearch_int(&(SP_ROW(A)[SP_COL(A)[j]]),
+      &(SP_ROW(A)[SP_COL(A)[j+1]-1]),i, &k)) {
+
+    write_num[SP_ID(A)](SP_VAL(A), SP_COL(A)[j] + k, value, 0);
+    return 0;
+  }
+  k += SP_COL(A)[j];
+
+  for (l=j+1; l<SP_NCOLS(A)+1; l++) SP_COL(A)[l]++;
+
+  /* split rowind and value lists at position 'k' and insert element */
+  for (l=SP_NNZ(A)-1; l>k; l--) {
+    SP_ROW(A)[l] = SP_ROW(A)[l-1];
+    write_num[SP_ID(A)](SP_VAL(A),l,SP_VAL(A),l-1);
+  }
+
+  SP_ROW(A)[k] = i;
+  write_num[SP_ID(A)](SP_VAL(A), k, value, 0);
+
+  return 0;
+}
+
+static int
+spmatrix_setitem_ij(spmatrix *A, int_t i, int_t j, number *value) {
+
+  /* Unlike spmatrix_SETITEM_IJ, this function check the existance of the
+   * entry. Otherwise it reallocates
+   */
+  int_t k;
+  number tmpval;
+
+
+  if ((k = spmatrix_getitem_ij(A, i, j, &tmpval)) >= 0){
+      spmatrix_setitem_ijk(A, i, j, k, value);
+  }
+  else {
+      if (!realloc_ccs(A->obj, SP_NNZ(A) + 1))
+          PY_ERR_INT(PyExc_MemoryError, "insufficient memory");
+      
+      spmatrix_setitem_ijk(A, i, j, -1, value);
+  }
+
+  return 0;
+}
+
 
 static int spmatrix_additem_ij(spmatrix *A, int_t i, int_t j, number *value) {
     /*
@@ -3880,14 +3904,9 @@ spmatrix_ass_subscr(spmatrix* self, PyObject* args, PyObject* value)
       PY_ERR_INT(PyExc_IndexError, "index out of range");
 
     i = CWRAP(i,SP_NROWS(self)); j = CWRAP(j,SP_NCOLS(self));
-    if (spmatrix_getitem_ij(self, i, j, &tempval))
-      spmatrix_setitem_ij(self, i, j, &val);
-    else {
-      if (!realloc_ccs(self->obj, SP_NNZ(self)+1))
-        PY_ERR_INT(PyExc_MemoryError, "insufficient memory");
 
-      spmatrix_setitem_ij(self, i, j, &val);
-    }
+    if (spmatrix_setitem_ij(self, i, j, &val) < 0)
+        return -1;
 
     return 0;
   }
@@ -4565,8 +4584,13 @@ static PyObject *spmatrix_ip_apply(PyObject *self, PyObject *args,
     ncols = SP_NCOLS(A);
     id = SP_ID(A);
 
+#if PY_MAJOR_VERSION >= 3
     if (PyLong_Check(Vt)) {
         val.i = PyLong_AsLong(Vt);
+#else
+    if (PyInt_Check(Vt)) {
+        val.i = PyInt_AsLong(Vt);
+#endif
 
         if (id == DOUBLE || id == COMPLEX) {
             val.d = (double)val.i;
@@ -4614,14 +4638,23 @@ static PyObject *spmatrix_ip_apply(PyObject *self, PyObject *args,
 
     int_t i, j;
 
+#if PY_MAJOR_VERSION >= 3
     if (PyLong_Check(Ilt) && PyLong_Check(Jlt)) {
+#else
+    if (PyInt_Check(Ilt) && PyInt_Check(Jlt)) {
+#endif
         if (!isscalar) {
             PY_ERR_TYPE("Can't mix nonscalar values with scalar index");
         }
 
+#if PY_MAJOR_VERSION >= 3
         i = PyLong_AsLong(Ilt);
         j = PyLong_AsLong(Jlt);
-        
+#else 
+        i = PyInt_AsLong(Ilt);
+        j = PyInt_AsLong(Jlt);
+#endif
+
         func(A, i, j, &val);
 
       Py_RETURN_NONE;
