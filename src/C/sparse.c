@@ -4640,7 +4640,7 @@ static PyObject *spmatrix_ip_apply(PyObject *self, PyObject *args,
         PY_ERR_TYPE("V type is not a sequence or a scalar value");
     }
 
-    int_t i, j;
+    int_t i, k, j;
 
 #if PY_MAJOR_VERSION >= 3
     if (PyLong_Check(Ilt) && PyLong_Check(Jlt)) {
@@ -4689,7 +4689,7 @@ static PyObject *spmatrix_ip_apply(PyObject *self, PyObject *args,
         PY_ERR_TYPE("index sets I and J must be of same length");
     }
 
-    for (int_t k = 0; k < MAT_LGT(Il); k++) {
+    for (k = 0; k < MAT_LGT(Il); k++) {
         if (MAT_BUFI(Il)[k] > nrows || MAT_BUFI(Jl)[k] > ncols) {
             Py_DECREF(Il);
             Py_DECREF(Jl);
@@ -4723,7 +4723,7 @@ static PyObject *spmatrix_ip_apply(PyObject *self, PyObject *args,
             PY_ERR_TYPE("V has a different length than I and J");
         }
 
-        for (int_t k = 0; k < MAT_LGT(Il); k++) {
+        for (k = 0; k < MAT_LGT(Il); k++) {
             i = MAT_BUFI(Il)[k];
             j = MAT_BUFI(Jl)[k];
 
@@ -4733,7 +4733,7 @@ static PyObject *spmatrix_ip_apply(PyObject *self, PyObject *args,
 
         Py_DECREF(V);
     } else {
-        for (int_t k = 0; k < MAT_LGT(Il); k++) {
+        for (k = 0; k < MAT_LGT(Il); k++) {
             i = MAT_BUFI(Il)[k];
             j = MAT_BUFI(Jl)[k];
 

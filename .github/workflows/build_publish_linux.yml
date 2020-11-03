@@ -38,21 +38,21 @@ jobs:
       - name: Build manylinux1 Python wheels
         uses: RalfG/python-wheels-manylinux-build@v0.3.1-manylinux1_x86_64
         with:
-          python-versions: 'cp27-cp27m cp27-cp27mu cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38'
+          python-versions: 'cp27-cp27m cp27-cp27mu cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
           build-requirements: ''
           system-packages: 'openblas-devel fftw-devel glpk-devel gsl-devel suitesparse-devel'
 
       - name: Build manylinux2010 Python wheels
         uses: RalfG/python-wheels-manylinux-build@v0.3.1-manylinux2010_x86_64
         with:
-          python-versions: 'cp27-cp27m cp27-cp27mu cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38'
+          python-versions: 'cp27-cp27m cp27-cp27mu cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
           build-requirements: ''
           system-packages: 'openblas-devel fftw-devel glpk-devel gsl-devel suitesparse-devel'
 
       - name: Build manylinux2014 Python wheels
         uses: RalfG/python-wheels-manylinux-build@v0.3.1-manylinux2014_x86_64
         with:
-          python-versions: 'cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38'
+          python-versions: 'cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
           build-requirements: ''
           system-packages: 'openblas-devel fftw-devel glpk-devel gsl-devel suitesparse-devel'
 
