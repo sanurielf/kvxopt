@@ -90,5 +90,45 @@ class TestBasic(unittest.TestCase):
         print(printing.spmatrix_str_default(A))
         print(printing.spmatrix_str_triplet(A))
 
+    def test_inplace(self):
+        import kvxopt
+        from kvxopt import matrix
+
+        a = kvxopt.spmatrix([1.0,2.0,5.0],[0,1,2],[0,0,0],(3,1))   
+        b = kvxopt.spmatrix([1], [0], [0], (3,1), tc='d')
+        b.ipset([1.0,2.0,5.0],[0,1,2],[0,0,0])
+        c = a - b
+        self.assertEqualLists(c.V, [0, 0, 0])
+
+        a = kvxopt.spmatrix([1.0,2.0,5.0],[0,1,2],[0,0,0],(3,1))   
+        b = kvxopt.spmatrix([], [], [], (3,1), tc='d')
+        b.ipadd([1.0,2.0,5.0],[0,1,2],[0,0,0])
+        c = a - b
+        self.assertEqualLists(c.V, [0, 0, 0])
+
+        a = kvxopt.spmatrix([1.0,1.0,1.0],[0,1,2],[0,0,0],(3,1))   
+        b = kvxopt.spmatrix([], [], [], (3,1), tc='d')
+        b.ipadd(1,[0,1,2],[0,0,0])
+        c = a - b
+        self.assertEqualLists(c.V, [0, 0, 0])
+
+        a = kvxopt.spmatrix([1.0,2.0,5.0],[0,1,2],[0,0,0],(3,1))   
+        b = kvxopt.spmatrix([], [], [], (3,1), tc='d')
+        b.ipadd([1.0,2.0,5.0],[0,1,2],[0,0,0])
+        c = a - b
+        self.assertEqualLists(c.V, [0, 0, 0])
+
+        a = kvxopt.spmatrix([1.0j,1.0j,1.0j],[0,1,2],[0,0,0],(3,1))   
+        b = kvxopt.spmatrix([], [], [], (3,1), tc='z')
+        b.ipadd(1j,matrix([0,1,2]),[0,0,0])
+        c = a - b
+        self.assertEqualLists(c.V, [0, 0, 0])
+
+
+
+
+
+
+
 if __name__ == '__main__':
     unittest.main()

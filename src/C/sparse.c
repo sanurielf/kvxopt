@@ -3114,12 +3114,12 @@ int spmatrix_getitem_ij(spmatrix *A, int_t i, int_t j, number *value)
       (SP_ROW(A)[SP_COL(A)[j+1]-1]), i, &k)) {
 
     write_num[SP_ID(A)](value, 0, SP_VAL(A), SP_COL(A)[j]+k);
-    return 1;
+    return k;
 
   } else {
 
     write_num[SP_ID(A)](value, 0, &Zero, 0);
-    return 0;
+    return -1;
   }
 }
 
@@ -3149,12 +3149,45 @@ spmatrix_setitem_ij(spmatrix *A, int_t i, int_t j, number *value) {
 
   return 0;
 }
+
+void
+spmatrix_setitem_ijk(spmatrix *A, int_t i, int_t j, int_t k, number *value) {
+
+    int_t l;
+
+    /* Means that value was found at position k and bsearch is not required */
+    if (k >= 0) {
+        write_num[SP_ID(A)](SP_VAL(A), SP_COL(A)[j] + k, value, 0);
+        return;
+    }
+
+    if (bsearch_int(&(SP_ROW(A)[SP_COL(A)[j]]),
+                  &(SP_ROW(A)[SP_COL(A)[j + 1] - 1]), i, &k)) {
+
+        write_num[SP_ID(A)](SP_VAL(A), SP_COL(A)[j] + k, value, 0);
+        return;
+    }
+    k += SP_COL(A)[j];
+
+    for (l = j + 1; l < SP_NCOLS(A) + 1; l++) SP_COL(A)[l]++;
+
+    /* split rowind and value lists at position 'k' and insert element */
+    for (l = SP_NNZ(A) - 1; l > k; l--) {
+        SP_ROW(A)[l] = SP_ROW(A)[l - 1];
+        write_num[SP_ID(A)](SP_VAL(A), l, SP_VAL(A), l - 1);
+    }
+
+    SP_ROW(A)[k] = i;
+    write_num[SP_ID(A)](SP_VAL(A), k, value, 0);
+}
+
 static int spmatrix_additem_ij(spmatrix *A, int_t i, int_t j, number *value) {
     /*
      * spmatrix_additem_ij
      * @author: Nichlos West, CURENT
      */
     number val;
+    int_t k;
 
     if (OUT_RNG(i, SP_NROWS(A)) || OUT_RNG(j, SP_NCOLS(A))) {
         PY_ERR_INT(PyExc_IndexError, "index out of range");
@@ -3163,25 +3196,27 @@ static int spmatrix_additem_ij(spmatrix *A, int_t i, int_t j, number *value) {
     i = CWRAP(i, SP_NROWS(A));
     j = CWRAP(j, SP_NCOLS(A));
 
-    if (!(spmatrix_getitem_ij(A, i, j, &val) || realloc_ccs(A->obj, SP_NNZ(A)+1))) {
-        PY_ERR_INT(PyExc_MemoryError, "insufficient memory");
+    if ((k = spmatrix_getitem_ij(A, i, j, &val)) < 0){
+        if (!realloc_ccs(A->obj, SP_NNZ(A) + 1))
+            PY_ERR_INT(PyExc_MemoryError, "insufficient memory");
     }
+
 
     switch (SP_ID(A)) {
-    case INT:
-        val.i += value->i;
-        break;
+        case INT:
+            val.i += value->i;
+            break;
 
-    case DOUBLE:
-        val.d += value->d;
-        break;
+        case DOUBLE:
+            val.d += value->d;
+            break;
 
-    case COMPLEX:
-        val.z += value->z;
-        break;
+        case COMPLEX:
+            val.z += value->z;
+            break;
     }
 
-    spmatrix_setitem_ij(A, i, j, &val);
+    spmatrix_setitem_ijk(A, i, j, k, &val);
     return 0;
 }
 
@@ -4525,6 +4560,7 @@ static PyObject *spmatrix_ip_apply(PyObject *self, PyObject *args,
 
     isscalar = 1;
 
+
     nrows = SP_NROWS(A);
     ncols = SP_NCOLS(A);
     id = SP_ID(A);
@@ -4532,11 +4568,11 @@ static PyObject *spmatrix_ip_apply(PyObject *self, PyObject *args,
     if (PyLong_Check(Vt)) {
         val.i = PyLong_AsLong(Vt);
 
-        if (id >= DOUBLE) {
+        if (id == DOUBLE || id == COMPLEX) {
             val.d = (double)val.i;
         }
 
-        if (id >= COMPLEX) {
+        if (id == COMPLEX) {
 #ifndef _MSC_VER
             val.z = (double complex)val.d;
 #else
@@ -4569,8 +4605,11 @@ static PyObject *spmatrix_ip_apply(PyObject *self, PyObject *args,
 #else
         val.z = _Cbuild(c.real, c.imag);
 #endif
-    } else {
+    } else if (PySequence_Check(Vt)){
         isscalar = 0;
+    }
+    else {
+        PY_ERR_TYPE("V type is not a sequence or a scalar value");
     }
 
     int_t i, j;
@@ -4582,24 +4621,21 @@ static PyObject *spmatrix_ip_apply(PyObject *self, PyObject *args,
 
         i = PyLong_AsLong(Ilt);
         j = PyLong_AsLong(Jlt);
+        
+        func(A, i, j, &val);
 
-        spmatrix_additem_ij(A, i, j, &val);
+      Py_RETURN_NONE;
 
-        Py_INCREF(self);
-
-        return self;
     }
 
     Il = array_like_to_matrix(Ilt, INT);
     if (Il == NULL) {
-        return NULL;
+        Py_RETURN_NONE;
     }
 
     Jl = array_like_to_matrix(Jlt, INT);
     if (Il == NULL) {
-        Py_DECREF(Il);
-
-        return NULL;
+        Py_RETURN_NONE;
     }
 
     if (MAT_ID(Il) != INT || MAT_ID(Jl) != INT) {
@@ -4631,7 +4667,7 @@ static PyObject *spmatrix_ip_apply(PyObject *self, PyObject *args,
             Py_DECREF(Il);
             Py_DECREF(Jl);
 
-            return NULL;
+            Py_RETURN_NONE;
         }
 
         if (MAT_ID(V) > id) {
@@ -4647,7 +4683,7 @@ static PyObject *spmatrix_ip_apply(PyObject *self, PyObject *args,
             Py_DECREF(Jl);
             Py_DECREF(V);
 
-            PY_ERR_TYPE("V has a different length than I or J");
+            PY_ERR_TYPE("V has a different length than I and J");
         }
 
         for (int_t k = 0; k < MAT_LGT(Il); k++) {
@@ -4671,9 +4707,7 @@ static PyObject *spmatrix_ip_apply(PyObject *self, PyObject *args,
     Py_DECREF(Il);
     Py_DECREF(Jl);
 
-    Py_INCREF(self);
-
-    return self;
+    Py_RETURN_NONE;
 }
 
 static PyObject *spmatrix_ipset(PyObject *self, PyObject *args) {
