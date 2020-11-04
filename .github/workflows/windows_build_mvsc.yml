@@ -11,12 +11,14 @@ jobs:
     env:
       KVXOPT_BUILD_GSL: 0
       KVXOPT_BUILD_FFTW: 0
-      KVXOPT_BUILD_GLPK: 0
+      KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_DSDP: 0
       KVXOPT_MSVC: 1
       SUITESPARSE_VERSION: 5.8.1
       SUITESPARSE_SHA256: 06726e471fbaa55f792578f9b4ab282ea9d008cf39ddcc3b42b73400acddef40
       OPENBLAS_VERSION: 0.3.10
+      GLPK_VERSION: 4.65
+      GLPK_SHA256: 4281e29b628864dfe48d393a7bedd781e5b475387c20d8b0158f329994721a10
 
     strategy:
       matrix:
@@ -55,20 +57,28 @@ jobs:
           pip install pytest pytest-cov coveralls wheel numpy
 
 
-      - name: Download openblas
+      - name: Get openblas
         shell: msys2 {0}
         run: |
             wget https://github.com/xianyi/OpenBLAS/releases/download/v${OPENBLAS_VERSION}/OpenBLAS-${OPENBLAS_VERSION}-${{matrix.ARCH}}.zip
             wget https://raw.githubusercontent.com/xianyi/OpenBLAS/v${OPENBLAS_VERSION}/LICENSE  -O OpenBLAS_LINCENSE
             echo "${{matrix.OPENBLAS_SHA256}}  OpenBLAS-${OPENBLAS_VERSION}-${{ matrix.ARCH }}.zip" > OpenBLAS.sha256
-            sha256sum -c OpenBLAS.sha256
+            shasum -a 256 -c OpenBLAS.sha256
             mkdir OpenBLAS
             unzip OpenBLAS-${OPENBLAS_VERSION}-${{matrix.ARCH}}.zip -d OpenBLAS/
             echo "KVXOPT_BLAS_LIB_DIR=${{ github.workspace}}/OpenBLAS/lib" >> $GITHUB_ENV
             echo "KVXOPT_LAPACK_LIB=libopenblas" >> $GITHUB_ENV
             echo "KVXOPT_BLAS_LIB=libopenblas" >> $GITHUB_ENV
 
-      - name: Config suite-sparse source
+      - name: Get GLPK
+        shell: msys2 {0}
+        run: |
+            wget -nv http://ftp.gnu.org/gnu/glpk/glpk-${{ env.GLPK_VERSION }}.tar.gz 
+            echo "${GLPK_SHA256}  glpk-${{ env.GLPK_VERSION }}.tar.gz" > GLPK.sha256
+            shasum -a 256 -c GLPK.sha256
+            tar -xf glpk-${{ env.GLPK_VERSION }}.tar.gz
+
+      - name: Get suite-sparse source
         shell: msys2 {0}
         run: |
             wget https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/v${{ env.SUITESPARSE_VERSION }}.tar.gz
@@ -77,11 +87,25 @@ jobs:
             tar -xf v${{ env.SUITESPARSE_VERSION }}.tar.gz
             echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
 
-
       - name: Cofigure Visual Studio 2019
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
         shell: cmd
+
+      - name: Compile GLPK
+        run: |
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
+            cd glpk-${{ env.GLPK_VERSION }}\w64 
+            cp config_VC config.h
+            nmake /f Makefile_VC glpk.lib 
+            cd ..\.. 
+        shell: cmd
+
+      - name: Set GLPK path
+        shell: msys2 {0}
+        run: |
+            echo "KVXOPT_GLPK_LIB_DIR=${{ github.workspace}}\glpk-${{ env.GLPK_VERSION }}\w64" >> $GITHUB_ENV
+            echo "KVXOPT_GLPK_INC_DIR=${{ github.workspace}}\glpk-${{ env.GLPK_VERSION }}\src" >> $GITHUB_ENV
 
       - name: Build
         run: |
@@ -93,5 +117,5 @@ jobs:
 
       - name: Test
         run: |
-          python -c 'from kvxopt import blas,lapack,cholmod,umfpack,klu'
+          python -c 'from kvxopt import blas,lapack,cholmod,umfpack,klu,glpk'
           py.test --cov=kvxopt tests/
