@@ -1,15 +1,20 @@
+# @Date:   2020-11-09T08:47:53-06:00
+# @Last modified time: 2020-11-10T13:23:37-06:00
+
+
+
 name: Windows build with MSVC
 on:
   push:
-    branches: [ master ]
+    branches: [ master, dev ]
   schedule:
     - cron: '0 0 * * 0'
 
-jobs:    
+jobs:
   build:
     runs-on: windows-latest
     env:
-      KVXOPT_BUILD_GSL: 0
+      KVXOPT_BUILD_GSL: 1
       KVXOPT_BUILD_FFTW: 0
       KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_DSDP: 0
@@ -19,20 +24,25 @@ jobs:
       OPENBLAS_VERSION: 0.3.10
       GLPK_VERSION: 4.65
       GLPK_SHA256: 4281e29b628864dfe48d393a7bedd781e5b475387c20d8b0158f329994721a10
+      GSL_VERSION: 2.5.0
+      GSL_SHA256:  e030783224c32aa8e1659c8df61355f229b4ecbf09732ba46c7f4040bbd7c940
+      GSL_COMMIT: f8e56946ce337a5a3f3229821faaf52607842874
 
     strategy:
       matrix:
         python-version: [3.5, 3.6, 3.7, 3.8, 3.9]
         suite-sparse: [src_suitesparse]
-        ARCH: [x64, x86]
+        ARCH: [x86, x64]
         include:
         - ARCH: x64
           VC_TARGET: 64
+          CMAKE_TARGET: Win32
           PYTHON_TARGET: win-amd64
           OPENBLAS_SHA256: a307629479260ebfed057a3fc466d2be83a2bb594739a99c06ec830173273135
 
         - ARCH: x86
           VC_TARGET: 32
+          CMAKE_TARGET: x64
           PYTHON_TARGET: win32
           OPENBLAS_SHA256: 7eab2be38e4c79f0ce496e7cb3ae28be457aef1b21e70eb7e32147b479b7bb57
 
@@ -49,7 +59,7 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
-          install: coreutils unzip
+          install: coreutils unzip git
 
       - name: Install dependencies
         run: |
@@ -73,7 +83,7 @@ jobs:
       - name: Get GLPK
         shell: msys2 {0}
         run: |
-            wget -nv http://ftp.gnu.org/gnu/glpk/glpk-${{ env.GLPK_VERSION }}.tar.gz 
+            wget -nv http://ftp.gnu.org/gnu/glpk/glpk-${{ env.GLPK_VERSION }}.tar.gz
             echo "${GLPK_SHA256}  glpk-${{ env.GLPK_VERSION }}.tar.gz" > GLPK.sha256
             shasum -a 256 -c GLPK.sha256
             tar -xf glpk-${{ env.GLPK_VERSION }}.tar.gz
@@ -87,6 +97,13 @@ jobs:
             tar -xf v${{ env.SUITESPARSE_VERSION }}.tar.gz
             echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
 
+      - name: Get GNU GSL
+        shell: msys2 {0}
+        run: |
+            git clone --recursive https://github.com/ampl/gsl.git gsl
+            cd gsl
+
+
       - name: Cofigure Visual Studio 2019
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
@@ -95,10 +112,11 @@ jobs:
       - name: Compile GLPK
         run: |
             call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
-            cd glpk-${{ env.GLPK_VERSION }}\w64 
+            cd glpk-${{ env.GLPK_VERSION }}\w64
             cp config_VC config.h
-            nmake /f Makefile_VC glpk.lib 
-            cd ..\.. 
+            nmake /f Makefile_VC glpk.lib
+            dir
+            cd ..\..
         shell: cmd
 
       - name: Set GLPK path
@@ -107,15 +125,34 @@ jobs:
             echo "KVXOPT_GLPK_LIB_DIR=${{ github.workspace}}\glpk-${{ env.GLPK_VERSION }}\w64" >> $GITHUB_ENV
             echo "KVXOPT_GLPK_INC_DIR=${{ github.workspace}}\glpk-${{ env.GLPK_VERSION }}\src" >> $GITHUB_ENV
 
+      - name: Compile GSL
+        run: |
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
+            cd gsl
+            mkdir build
+            cmake -G "Visual Studio 16 2019" -A ${{ matrix.CMAKE_TARGET }} -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_INSTALL_PREFIX=build -DGSL_INSTALL_MULTI_CONFIG=ON -DBUILD_SHARED_LIBS=ON -DMSVC_RUNTIME_DYNAMIC=ON .
+            cmake --build . --target install
+            dir build\lib
+            dir build\bin
+            dir build\include
+        shell: cmd
+
+      - name: Set GSL path
+        shell: msys2 {0}
+        run: |
+            echo "KVXOPT_GSL_LIB_DIR=${{ github.workspace}}\gsl\build\lib\Debug" >> $GITHUB_ENV
+            echo "KVXOPT_GSL_INC_DIR=${{ github.workspace}}\gsl\build\include" >> $GITHUB_ENV
+
       - name: Build
         run: |
           python setup.py build
           copy ${{ github.workspace}}\OpenBLAS\bin\libopenblas.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
+          copy ${{ github.workspace}}\gsl\build\bin\gsl.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
           python setup.py bdist_wheel
           pip install .
         shell: cmd
 
       - name: Test
         run: |
-          python -c 'from kvxopt import blas,lapack,cholmod,umfpack,klu,glpk'
+          python -c 'from kvxopt import blas,lapack,cholmod,umfpack,klu,glpk,gsl'
           py.test --cov=kvxopt tests/
