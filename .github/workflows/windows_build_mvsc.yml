@@ -19,11 +19,13 @@ jobs:
       KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_DSDP: 0
       KVXOPT_MSVC: 1
+      KVXOPT_BUILD_OSQP: 1
       SUITESPARSE_VERSION: 5.8.1
       SUITESPARSE_SHA256: 06726e471fbaa55f792578f9b4ab282ea9d008cf39ddcc3b42b73400acddef40
       OPENBLAS_VERSION: 0.3.10
       GLPK_VERSION: 4.65
       GLPK_SHA256: 4281e29b628864dfe48d393a7bedd781e5b475387c20d8b0158f329994721a10
+      OSQP_VERSION: 0.6.0
 
     strategy:
       matrix:
@@ -94,6 +96,12 @@ jobs:
             tar -xf v${{ env.SUITESPARSE_VERSION }}.tar.gz
             echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
 
+      - name: Get OSQP
+        shell: msys2 {0}
+        run: |
+            git clone --recursive https://github.com/oxfordcontrol/osqp.git
+            cd osqp
+            git checkout v${{ env.OSQP_VERSION }}
 
       - name: Cofigure Visual Studio 2019
         run: |
@@ -110,22 +118,39 @@ jobs:
             cd ..\..
         shell: cmd
 
+      - name: Compile OSQP
+        run: |
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
+            cd osqp
+            mkdir build
+            cd build
+            cmake -DCMAKE_INSTALL_PREFIX=dist ..
+            cmake --build . --target install
+        shell: cmd
+
       - name: Set GLPK path
         shell: msys2 {0}
         run: |
             echo "KVXOPT_GLPK_LIB_DIR=${{ github.workspace}}\glpk-${{ env.GLPK_VERSION }}\w64" >> $GITHUB_ENV
             echo "KVXOPT_GLPK_INC_DIR=${{ github.workspace}}\glpk-${{ env.GLPK_VERSION }}\src" >> $GITHUB_ENV
 
+      - name: Set OSQP path
+        shell: msys2 {0}
+        run: |
+            echo "KVXOPT_OSQP_LIB_DIR=${{ github.workspace}}\osqp\build\dist\lib" >> $GITHUB_ENV
+            echo "KVXOPT_OSQP_INC_DIR=${{ github.workspace}}\osqp\build\dist\include\osqp" >> $GITHUB_ENV
 
       - name: Build
         run: |
           python setup.py build
           copy ${{ github.workspace}}\OpenBLAS\bin\libopenblas.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
+          copy ${{ github.workspace}}\osqp\build\dist\bin\osqp.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
+          copy ${{ github.workspace}}\osqp\build\dist\bin\qdldl.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
           python setup.py bdist_wheel
           pip install .
         shell: cmd
 
       - name: Test
         run: |
-          python -c 'from kvxopt import blas,lapack,cholmod,umfpack,klu,glpk'
+          python -c 'from kvxopt import blas,lapack,cholmod,umfpack,klu,glpk,osqp'
           py.test --cov=kvxopt tests/

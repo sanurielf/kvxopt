@@ -2804,17 +2804,38 @@ def lp(c, G, h, A = None, b = None, kktsolver = None, solver = None, primalstart
     if not isinstance(b,matrix) or b.typecode != 'd' or b.size != (p,1):
         raise TypeError("'b' must be a dense matrix of size (%d,1)" %p)
 
-    if solver == 'glpk':
-        try: from kvxopt import glpk
-        except ImportError: raise ValueError("invalid option "\
-            "(solver = 'glpk'): cvxopt.glpk is not installed")
-        opts = options.get('glpk',None)
-        if opts:
-            status, x, z, y = glpk.lp(c, G, h, A, b, options = opts)
-        else:
-            status, x, z, y = glpk.lp(c, G, h, A, b)
+    if solver in ('glpk', 'osqp'):
+        if solver == 'glpk':
+            try: from kvxopt import glpk
+            except ImportError: raise ValueError("invalid option "\
+                "(solver = 'glpk'): cvxopt.glpk is not installed")
+            opts = options.get('glpk',None)
+            if opts:
+                status, x, z, y = glpk.lp(c, G, h, A, b, options = opts)
+            else:
+                status, x, z, y = glpk.lp(c, G, h, A, b)
+
+        elif solver == 'osqp':
+            try: from kvxopt import osqp
+            except ImportError: raise ValueError("invalid option "\
+                "(solver = 'osqp'): cvxopt.osqp is not installed")
+            opts = options.get('osqp',None)
+
+            if isinstance(G, matrix):
+                G = sparse(G)
+            if isinstance(A, matrix):
+                A = sparse(A)
+
+            if opts:
+                status, x, z, y = osqp.qp(c, G, h, A, b, options = opts)
+            else:
+                status, x, z, y = osqp.qp(c, G, h, A, b)
+
+            if status == 'solved':
+                status = 'optimal'
 
         if status == 'optimal':
+
             resx0 = max(1.0, blas.nrm2(c))
             resy0 = max(1.0, blas.nrm2(b))
             resz0 = max(1.0, blas.nrm2(h))
@@ -4340,19 +4361,41 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
     from kvxopt import base, blas
     from kvxopt.base import matrix, spmatrix
 
-    if solver == 'mosek':
+    if solver in ('mosek', 'osqp'):
         from kvxopt import misc
-        try:
-            from kvxopt import msk
-            import mosek
-        except ImportError: raise ValueError("invalid option "\
-            "(solver='mosek'): cvxopt.msk is not installed")
 
-        opts = options.get('mosek',None)
-        if opts:
-            solsta, x, z, y = msk.qp(P, q, G, h, A, b, options=opts)
-        else:
-            solsta, x, z, y = msk.qp(P, q, G, h, A, b)
+        if solver == 'mosek':
+            try:
+                from kvxopt import msk
+                import mosek
+            except ImportError: raise ValueError("invalid option "\
+                "(solver='mosek'): cvxopt.msk is not installed")
+
+            opts = options.get('mosek',None)
+            if opts:
+                solsta, x, z, y = msk.qp(P, q, G, h, A, b, options=opts)
+            else:
+                solsta, x, z, y = msk.qp(P, q, G, h, A, b)
+        elif solver == 'osqp':
+            try:
+                from kvxopt import osqp
+            except ImportError: raise ValueError("invalid option "\
+                "(solver='mosek'): cvxopt.msk is not installed")
+
+
+            if isinstance(G, matrix):
+                G = sparse(G)
+            if isinstance(P, matrix):
+                P = sparse(P)
+            if isinstance(A, matrix):
+                A = sparse(A)
+
+            opts = options.get('osqp',None)
+            if opts:
+                solsta, x, z, y = osqp.qp(q, G, h, A, b, P, options=opts)
+            else:
+                solsta, x, z, y = osqp.qp(q, G, h, A, b, P)
+
 
         n = q.size[0]
         if G is None: G = spmatrix([], [], [], (0,n), 'd')
@@ -4365,9 +4408,14 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
         resy0 = max(1.0, blas.nrm2(b))
         resz0 = max(1.0, blas.nrm2(h))
 
-        if solsta in (mosek.solsta.optimal, getattr(mosek.solsta,'near_optimal',None)):
-            if solsta is mosek.solsta.optimal: status = 'optimal'
-            else: status = 'near optimal'
+        if ((solver == 'mosek') and  solsta in (mosek.solsta.optimal, getattr(mosek.solsta,'near_optimal',None))) or \
+           ((solver == 'osqp') and  solsta in ('solved',)):
+
+            if solver == 'mosek':
+                if solsta is mosek.solsta.optimal: status = 'optimal'
+                else: status = 'near optimal'
+            else:
+                status = 'optimal'
 
             s = matrix(h)
             base.gemv(G, x, s, alpha = -1.0, beta = 1.0)
@@ -4409,7 +4457,7 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
             pres, dres = max(resy, resz), resx
             pinfres, dinfres = None, None
 
-        elif solsta == mosek.solsta.prim_infeas_cer:
+        elif solver == 'mosek' and solsta == mosek.solsta.prim_infeas_cer:
             status = 'primal infeasible'
 
             hz, by = blas.dot(h, z),  blas.dot(b, y)
@@ -4432,7 +4480,7 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
             dslack = -misc.max_step(z, dims)
             pslack = None
 
-        elif solsta == mosek.solsta.dual_infeas_cer:
+        elif solver == 'mosek' and solsta == mosek.solsta.dual_infeas_cer:
             status = 'dual infeasible'
             qx = blas.dot(q,x)
             blas.scal(-1.0/qx, x)
@@ -4481,5 +4529,9 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
             'primal slack': pslack, 'dual slack': dslack,
             'residual as primal infeasibility certificate': pinfres,
             'residual as dual infeasibility certificate': dinfres}
+
+
+
+
 
     return coneqp(P, q, G, h, None, A,  b, initvals, kktsolver = kktsolver, options = options)
