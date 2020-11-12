@@ -5,13 +5,14 @@ on:
   schedule:
     - cron: '0 0 * * 0'
 
-jobs:    
+jobs:
   build:
     runs-on: macos-latest
     env:
       KVXOPT_BUILD_GSL: 1
       KVXOPT_BUILD_FFTW: 1
       KVXOPT_BUILD_GLPK: 1
+      KVXOPT_BUILD_OSQP: 1
       KVXOPT_BUILD_DSDP: 0
       SUITESPARSE_VERSION: 5.8.1
       SUITESPARSE_SHA256: 06726e471fbaa55f792578f9b4ab282ea9d008cf39ddcc3b42b73400acddef40
@@ -36,8 +37,8 @@ jobs:
 
       - name: Install libraries
         run: |
-            brew install openblas glpk gsl fftw
-      
+            brew install openblas glpk gsl fftw osqp
+
       - name: Config suite-sparse library
         run:
             brew install suite-sparse
@@ -49,10 +50,10 @@ jobs:
             echo "${SUITESPARSE_SHA256}  v${SUITESPARSE_VERSION}.tar.gz" > SuiteSparse.sha256
             shasum -a 256 -c SuiteSparse.sha256
             tar -xf v${SUITESPARSE_VERSION}.tar.gz
-            echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV 
+            echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
         if: ${{ matrix.suite-sparse == 'src_suitesparse' }}
 
-      - name: Install 
+      - name: Install
         run: |
           python setup.py build
           pip install .
@@ -60,5 +61,5 @@ jobs:
       - name: Test
         run: |
           echo ${KVXOPT_SUITESPARSE_SRC_DIR}
-          python -c 'from kvxopt import blas,lapack,glpk,fftw,gsl,cholmod,umfpack,klu'
+          python -c 'from kvxopt import blas,lapack,glpk,osqp,fftw,gsl,cholmod,umfpack,klu'
           py.test --cov=kvxopt tests/

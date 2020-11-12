@@ -27,7 +27,7 @@
 
 /* ANSI99 complex is disabled during build of CHOLMOD */
 
-#if !defined(NO_ANSI99_COMPLEX) 
+#if !defined(NO_ANSI99_COMPLEX)
 #include "complex.h"
 #if !defined(_MSC_VER)
 #define MAT_BUFZ(O)  ((double complex *)((matrix *)O)->buffer)
@@ -67,6 +67,21 @@ typedef struct {
   PyObject_HEAD
   ccs *obj;
 } spmatrix;
+
+#if PY_MAJOR_VERSION >= 3
+#define PYINT_CHECK(value) PyLong_Check(value)
+#define PYINT_AS_LONG(value) PyLong_AS_LONG(value)
+#define PYSTRING_FROMSTRING(str) PyUnicode_FromString(str)
+#define PYSTRING_CHECK(a) PyUnicode_Check(a)
+#define PYSTRING_COMPARE(a,b) PyUnicode_CompareWithASCIIString(a, b)
+#else
+#define PYINT_CHECK(value) PyInt_Check(value)
+#define PYINT_AS_LONG(value) PyInt_AS_LONG(value)
+#define PYSTRING_FROMSTRING(str) PyString_FromString(str)
+#define PYSTRING_CHECK(a) PyString_Check(a)
+#define PYSTRING_COMPARE(a,b) strcmp(PyString_AsString(a), b)
+#endif
+
 
 #ifdef BASE_MODULE
 
