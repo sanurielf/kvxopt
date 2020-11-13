@@ -104,6 +104,7 @@ static void **kvxopt_API;
   (*(spmatrix * (*)(matrix *, matrix *, matrix *, int_t, int_t, int)) \
       kvxopt_API[6])
 #define SpMatrix_Check (*(int * (*)(void *)) kvxopt_API[7])
+#define SpMatrix_Trans (*(spmatrix * (*)(spmatrix *)) kvxopt_API[8])
 
 /* Return -1 and set exception on error, 0 on success. */
 static int

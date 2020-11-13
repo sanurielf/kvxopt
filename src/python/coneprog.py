@@ -4412,8 +4412,10 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
            ((solver == 'osqp') and  solsta in ('solved',)):
 
             if solver == 'mosek':
-                if solsta is mosek.solsta.optimal: status = 'optimal'
-                else: status = 'near optimal'
+                if solsta is mosek.solsta.optimal:
+                    status = 'optimal'
+                else:
+                    status = 'near optimal'
             else:
                 status = 'optimal'
 

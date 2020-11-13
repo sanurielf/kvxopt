@@ -12,13 +12,6 @@ class TestOSQP(unittest.TestCase):
             b = matrix(1.0)
             self._prob_data = (c,G,h,A,b)
 
-            q = matrix([1., 1.])
-            P = sparse(matrix([[4, 0], [1, 2]]))
-            G = sparse(matrix([[1., 1, 0, -1, -1, 0],
-                               [1., 0, 1, -1, 0, -1]]))
-            h = matrix([1, 0.7, 0.7, -1, 0, 0])
-            self._prob_data2 = (q,G,h,P)
-
         except ImportError:
             self.skipTest("OSQP not available")
 
@@ -58,37 +51,26 @@ class TestOSQP(unittest.TestCase):
 
     def test_qp(self):
 
-        from kvxopt import solvers, osqp, spmatrix
-        q,G,h,P = self._prob_data2
-        P = spmatrix([], [], [], (2, 2))
-        sol1 = solvers.qp(P, q, G, h)
+        from kvxopt import solvers, osqp, spmatrix, sparse, matrix
+        # Example from OSQP
+        q = matrix([1., 1.])
+        P = sparse(matrix([[4, 1], [0, 2]]))
+        G = sparse(matrix([[1., 1, 0, -1, -1,  0],
+                           [1., 0, 1, -1,  0, -1]]))
+        h = matrix([1, 0.7, 0.7, -1, 0, 0])
+
+        x = [0.3, 0.7]
+        y = []
+        z = [0, 0, 0.2, 2.9, 0, 0]
+        obj = 1.88
+
+        sol1 = solvers.qp(P, q, G, h, solver = 'osqp')
         self.assertTrue(sol1['status']=='optimal')
-        sol2 = solvers.qp(P, q, G, h, solver='osqp')
-        print("""sol1['x']\n""", sol1['x'])
-        print("""sol2['x']\n""", sol2['x'])
-        print("""sol1['y']\n""", sol1['y'])
-        print("""sol2['y']\n""", sol2['y'])
-        print("""sol1['z']\n""", sol1['z'])
-        print("""sol2['z']\n""", sol2['z'])
-        self.assertTrue(sol2['status']=='optimal')
 
-        self.assertAlmostEqualLists(list(sol1['x']), list(sol2['x']), 2)
-        #self.assertAlmostEqualLists(list(sol1['z']), list(sol2['z']), 2)
-        #self.assertAlmostEqualLists(list(sol1['y']), list(sol2['y']), 2)
-
-
-        print(sol1['x'])
-        print(sol2['x'])
-
-        # sol5 = osqp.qp(q,G,h, None, None, P)
-        # self.assertTrue(sol5[0]=='optimal')
-        # sol6 = osqp.qp(q,G,h, None, None, P)
-        # self.assertTrue(sol6[0]=='optimal')
-        # sol7 = osqp.qp(c,G,h,None,None)
-        # self.assertTrue(sol7[0]=='optimal')
-
-
-
+        self.assertAlmostEqualLists(list(sol1['x']), x, 2)
+        self.assertAlmostEqualLists(list(sol1['y']), y, 2)
+        self.assertAlmostEqualLists(list(sol1['z']), z, 1)
+        self.assertAlmostEqual(sol1['primal objective'], obj, 5)
 
 
 if __name__ == '__main__':
