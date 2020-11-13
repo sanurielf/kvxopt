@@ -90,7 +90,7 @@ static char doc_qp[] =
 static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs){
 
     matrix *q, *h, *b = NULL, *x = NULL, *y = NULL, *z = NULL;
-    spmatrix *P = NULL, *G, *A = NULL;
+    spmatrix *P = NULL, *G, *A = NULL, *Pt = NULL;
     PyObject *opts = NULL, *res = NULL;
     int_t i, j, k, m, n, p, exitflag;
     csc *A_o;
@@ -153,7 +153,7 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs){
         PyErr_SetString(PyExc_ValueError, "incompatible dimensions");
         return NULL;
     }
-    printf("Value of p = %d\n", p);
+
     if (P == Py_None)
         P = NULL;
     if (P) {
@@ -171,6 +171,10 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs){
             PyErr_SetString(PyExc_ValueError, "incompatible dimensions");
             return NULL;
         }
+        /* We transpose the matrix since CVXOPT formulation receives the
+         * matrix in a lower triangular form. OSQP needs it in upper triangular */
+        Pt = SpMatrix_Trans(P);
+
     }
 
 
@@ -278,8 +282,8 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs){
     data->u = u;
 
     if (P)
-        data->P = csc_matrix(data->n, data->n, SP_NNZ(P), SP_VALD(P),
-                             (c_int *)SP_ROW(P), (c_int *)SP_COL(P));
+        data->P = csc_matrix(data->n, data->n, SP_NNZ(Pt), SP_VALD(Pt),
+                             (c_int *)SP_ROW(Pt), (c_int *)SP_COL(Pt));
     else {
         data->P = csc_spalloc(data->n, data->n, 0, 0, 0);
         for (i = 0; i < data->n + 1; i++)
@@ -310,8 +314,10 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs){
     // We can free the following variables since the solution is stored in work
     if (p > 0) csc_spfree(A_o);
     else c_free(data->A);
-    if (P)
+    if (P){
         c_free(data->P);
+        Py_XDECREF(Pt);
+    }
     else
         csc_spfree(data->P);
     c_free(data);
@@ -324,40 +330,57 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs){
         return PyErr_NoMemory();
     }
 
-    switch (work->info->status_val) {
-        case OSQP_SOLVED:
-            x = (matrix *) Matrix_New(n, 1, DOUBLE);
-            z = (matrix *) Matrix_New(m, 1, DOUBLE);
-            y = (matrix *) Matrix_New(p, 1, DOUBLE);
-            if (!x || !z || !y){
-                Py_XDECREF(x);
-                Py_XDECREF(z);
-                Py_XDECREF(y);
-                Py_XDECREF(res);
-                osqp_cleanup(work);
-                return PyErr_NoMemory();
-            }
-            PyTuple_SET_ITEM(res, 0, (PyObject *) PYSTRING_FROMSTRING(work->info->status));
-            memcpy(MAT_BUFD(x), (double *) work->solution->x, n * sizeof(double));
-            memcpy(MAT_BUFD(z), (double *) work->solution->y, m * sizeof(double));
-            if (p > 0)
-                memcpy(MAT_BUFD(y), (double *) &work->solution->y[m],
-                       p * sizeof(double));
+    x = (matrix *) Matrix_New(n, 1, DOUBLE);
+    z = (matrix *) Matrix_New(m, 1, DOUBLE);
+    y = (matrix *) Matrix_New(p, 1, DOUBLE);
 
-            PyTuple_SET_ITEM(res, 1, (PyObject *) x);
-            PyTuple_SET_ITEM(res, 2, (PyObject *) z);
-            PyTuple_SET_ITEM(res, 3, (PyObject *) y);
-
-
-            osqp_cleanup(work);
-            return res;
+    if (!x || !z || !y){
+        Py_XDECREF(x);
+        Py_XDECREF(z);
+        Py_XDECREF(y);
+        Py_XDECREF(res);
+        osqp_cleanup(work);
+        return PyErr_NoMemory();
     }
 
+    PyTuple_SET_ITEM(res, 0, (PyObject *) PYSTRING_FROMSTRING(work->info->status));
+
+
+    if (work->info->status_val == OSQP_SOLVED ||
+        work->info->status_val == OSQP_SOLVED_INACCURATE){
+
+        memcpy(MAT_BUFD(x), (double *) work->solution->x, n * sizeof(double));
+        memcpy(MAT_BUFD(z), (double *) work->solution->y, m * sizeof(double));
+        if (p > 0)
+            memcpy(MAT_BUFD(y), (double *) &work->solution->y[m],
+                   p * sizeof(double));
+
+    }
+    else if (work->info->status_val == OSQP_PRIMAL_INFEASIBLE ||
+             work->info->status_val == OSQP_PRIMAL_INFEASIBLE_INACCURATE){
+        /* Return the primal certificate */
+        memcpy(MAT_BUFD(z), (double *) work->delta_y, m * sizeof(double));
+        if (p > 0)
+            memcpy(MAT_BUFD(y), (double *) &work->delta_y[m], p * sizeof(double));
+
+    }
+    else if (work->info->status_val == OSQP_DUAL_INFEASIBLE ||
+             work->info->status_val == OSQP_DUAL_INFEASIBLE_INACCURATE){
+
+        memcpy(MAT_BUFD(x), (double *) work->delta_x, n * sizeof(double));
+
+    }
+
+
+    PyTuple_SET_ITEM(res, 1, (PyObject *) x);
+    PyTuple_SET_ITEM(res, 2, (PyObject *) z);
+    PyTuple_SET_ITEM(res, 3, (PyObject *) y);
+
+
     osqp_cleanup(work);
-
-
-
     return res;
+
+
 }
 
 

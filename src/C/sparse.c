@@ -279,7 +279,7 @@ spmatrix *SpMatrix_NewFromMatrix(matrix *src, int id)
       convert_num[id](&a, src, 0, i+j*MAT_NROWS(src));
       if (((id == INT) && (a.i != Zero[INT].i)) ||
           ((id == DOUBLE) && (a.d != Zero[DOUBLE].d)) ||
-#ifndef _MSC_VER 
+#ifndef _MSC_VER
           ((id == COMPLEX) && (a.z != Zero[COMPLEX].z))) {
 #else
           ((id == COMPLEX) && (creal(a.z) != 0.0 || cimag(a.z) != 0.0))) {
@@ -947,7 +947,7 @@ static int sp_zaxpy(number a, void *x, void *y, int sp_x, int sp_y,
         Y[X->rowind[k] + j*X->nrows] += a.z*(((double complex *)X->values)[k]);
 #else
         tmp = _Cmulcc(a.z, ((_Dcomplex *)X->values)[k]);
-        Y[X->rowind[k] + j*X->nrows] = _Cbuild(creal(tmp)+creal(Y[X->rowind[k] + j*X->nrows]),cimag(tmp)+cimag(Y[X->rowind[k] + j*X->nrows])); 
+        Y[X->rowind[k] + j*X->nrows] = _Cbuild(creal(tmp)+creal(Y[X->rowind[k] + j*X->nrows]),cimag(tmp)+cimag(Y[X->rowind[k] + j*X->nrows]));
 #endif
     }
   }
@@ -1053,7 +1053,7 @@ static int sp_zaxpy(number a, void *x, void *y, int sp_x, int sp_y,
       for (k=0; k<Y->nrows; k++)
         Z->rowind[j*Y->nrows+k] = k;
 
-      for (k=Y->colptr[j]; k<Y->colptr[j+1]; k++) 
+      for (k=Y->colptr[j]; k<Y->colptr[j+1]; k++)
 #ifndef _MSC_VER
         ((double complex *)Z->values)[j*Y->nrows + Y->rowind[k]] +=
             ((double complex *)Y->values)[k];
@@ -1108,7 +1108,7 @@ static int sp_zgemv(char tA, int m, int n, number alpha, void *a, int oA,
   double complex *X = x, *Y = y;
 #else
   _Dcomplex *X = x, *Y = y;
-  _Dcomplex tmp; 
+  _Dcomplex tmp;
 #endif
 
   scal[A->id]((tA == 'N' ? &m : &n), &beta, Y, &iy);
@@ -1213,7 +1213,7 @@ int sp_zsymv(char uplo, int n, number alpha, ccs *A, int oA, void *x, int ix,
               X[ix*(j + (ix > 0 ? 0 : 1-n))];
 #else
 	  tmp = _Cmulcc(alpha.z, _Cmulcc(((_Dcomplex *)A->values)[k],X[ix*(j + (ix > 0 ? 0 : 1-n))]));
-          Y[iy*(i + (iy > 0 ? 0 : 1-n))] = _Cbuild(creal(tmp)+creal(Y[iy*(i + (iy > 0 ? 0 : 1-n))]),cimag(tmp)+cimag(Y[iy*(i + (iy > 0 ? 0 : 1-n))])); 
+          Y[iy*(i + (iy > 0 ? 0 : 1-n))] = _Cbuild(creal(tmp)+creal(Y[iy*(i + (iy > 0 ? 0 : 1-n))]),cimag(tmp)+cimag(Y[iy*(i + (iy > 0 ? 0 : 1-n))]));
 #endif
           if (i != j) {
 #ifndef _MSC_VER
@@ -1761,7 +1761,7 @@ static int sp_zgemm(char tA, char tB, number alpha, void *a, void *b,
         C[j*A->nrows + s->idx[l]] += alpha.z*((double complex *)s->val)[s->idx[l]];
 #else
         tmp = _Cmulcc(alpha.z,((_Dcomplex *)s->val)[s->idx[l]]);
-        C[j*A->nrows + s->idx[l]] = _Cbuild(creal(tmp)+creal(C[j*A->nrows + s->idx[l]]),cimag(tmp)+cimag(C[j*A->nrows + s->idx[l]])); 
+        C[j*A->nrows + s->idx[l]] = _Cbuild(creal(tmp)+creal(C[j*A->nrows + s->idx[l]]),cimag(tmp)+cimag(C[j*A->nrows + s->idx[l]]));
 #endif
     }
     free_spa(s);
@@ -2011,7 +2011,7 @@ static int sp_zgemm(char tA, char tB, number alpha, void *a, void *b,
     double complex *B = b;
 #else
     _Dcomplex *B = b;
-#endif 
+#endif
 
     spa *s = alloc_spa(A->nrows, A->id);
     int_t *colptr_new = calloc(n+1,sizeof(int_t));
@@ -2962,6 +2962,11 @@ static spmatrix * spmatrix_get_T(spmatrix *self, void *closure)
   return SpMatrix_NewFromCCS(transpose(((spmatrix *)self)->obj,0));
 }
 
+spmatrix * SpMatrix_Trans(spmatrix *self, void *closure)
+{
+  return SpMatrix_NewFromCCS(transpose(((spmatrix *)self)->obj,0));
+}
+
 static spmatrix * spmatrix_get_H(spmatrix *self, void *closure)
 {
   return SpMatrix_NewFromCCS(transpose(((spmatrix *)self)->obj,1));
@@ -3197,7 +3202,7 @@ spmatrix_setitem_ij(spmatrix *A, int_t i, int_t j, number *value) {
   else {
       if (!realloc_ccs(A->obj, SP_NNZ(A) + 1))
           PY_ERR_INT(PyExc_MemoryError, "insufficient memory");
-      
+
       spmatrix_setitem_ijk(A, i, j, -1, value);
   }
 
@@ -4654,7 +4659,7 @@ static PyObject *spmatrix_ip_apply(PyObject *self, PyObject *args,
 #if PY_MAJOR_VERSION >= 3
         i = PyLong_AsLong(Ilt);
         j = PyLong_AsLong(Jlt);
-#else 
+#else
         i = PyInt_AsLong(Ilt);
         j = PyInt_AsLong(Jlt);
 #endif
