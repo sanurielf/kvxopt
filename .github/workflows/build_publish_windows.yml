@@ -49,7 +49,6 @@ jobs:
           msystem: MINGW64
           install: coreutils unzip
 
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
