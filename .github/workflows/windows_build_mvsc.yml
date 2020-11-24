@@ -31,7 +31,7 @@ jobs:
       matrix:
         python-version: [3.5, 3.6, 3.7, 3.8, 3.9]
         suite-sparse: [src_suitesparse]
-        ARCH: [x86, x64]
+        ARCH: [x64]
         include:
         - ARCH: x64
           VC_TARGET: 64
@@ -44,7 +44,6 @@ jobs:
           CMAKE_TARGET: x64
           PYTHON_TARGET: win32
           OPENBLAS_SHA256: 7eab2be38e4c79f0ce496e7cb3ae28be457aef1b21e70eb7e32147b479b7bb57
-
 
     steps:
       - uses: actions/checkout@v2
