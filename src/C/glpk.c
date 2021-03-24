@@ -245,7 +245,7 @@ static PyObject *simplex(PyObject *self, PyObject *args, PyObject *kwrds)
                 if (PYSTRING_CHECK(value)){
                     if (!PYSTRING_COMPARE(value, "GLP_PRIMAL"))
                         smcp.meth = GLP_PRIMAL;
-#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35
+#if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35) || GLP_MAJOR_VERSION >= 5
                     else if (!PYSTRING_COMPARE(value, "GLP_DUAL"))
                         smcp.meth = GLP_DUAL;
 #endif
@@ -641,7 +641,7 @@ static PyObject *integer(PyObject *self, PyObject *args,
                         iocp.br_tech = GLP_BR_MFV;
                     else if (!PYSTRING_COMPARE(value, "GLP_BR_DTH"))
                         iocp.br_tech = GLP_BR_DTH;
-#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 40
+#if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 40) || GLP_MAJOR_VERSION >= 5
                     else if (!PYSTRING_COMPARE(value, "GLP_BR_PCH"))
                         iocp.br_tech = GLP_BR_PCH;
 #endif
@@ -671,7 +671,7 @@ static PyObject *integer(PyObject *self, PyObject *args,
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['bt_tech'] "
                         "with default value", 1);
-#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35
+#if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35) || GLP_MAJOR_VERSION >= 5
             else if (!PYSTRING_COMPARE(key, "pp_tech"))
                 if (PYSTRING_CHECK(value)){
                     if (!PYSTRING_COMPARE(value, "GLP_PP_NONE"))
@@ -689,7 +689,7 @@ static PyObject *integer(PyObject *self, PyObject *args,
                     PyErr_WarnEx(NULL, "replacing glpk.options['pp_tech'] "
                         "with default value", 1);
 #endif
-#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 40
+#if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 40) || GLP_MAJOR_VERSION >= 5
             else if (!PYSTRING_COMPARE(key, "fp_heur"))
                 if (PYSTRING_CHECK(value)){
                     if (!PYSTRING_COMPARE(value, "GLP_ON"))
@@ -727,7 +727,7 @@ static PyObject *integer(PyObject *self, PyObject *args,
                     PyErr_WarnEx(NULL, "replacing "
                         "glpk.options['ps_tm_lim'] with default value", 1);
 #endif
-#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35
+#if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35) || GLP_MAJOR_VERSION >= 5
             else if (!PYSTRING_COMPARE(key, "gmi_cuts"))
                 if (PYSTRING_CHECK(value)){
                     if (!PYSTRING_COMPARE(value, "GLP_ON"))
@@ -797,7 +797,7 @@ static PyObject *integer(PyObject *self, PyObject *args,
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['tol_obj'] "
                         "with default value", 1);
-#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35
+#if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35) || GLP_MAJOR_VERSION >= 5
             else if (!PYSTRING_COMPARE(key, "mip_gap"))
                 if (PyFloat_Check(value))
                     iocp.mip_gap = PyFloat_AsDouble(value);
@@ -829,7 +829,7 @@ static PyObject *integer(PyObject *self, PyObject *args,
             else if (!PYSTRING_COMPARE(key, "cb_info"))
                 PyErr_WarnEx(NULL, "replacing glpk.options['cb_info'] "
                         "with default value", 1);
-#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35
+#if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35) || GLP_MAJOR_VERSION >= 5
             else if (!PYSTRING_COMPARE(key, "cb_size"))
                 if (PYINT_CHECK(value))
                     iocp.cb_size = PYINT_AS_LONG(value);
@@ -872,7 +872,7 @@ static PyObject *integer(PyObject *self, PyObject *args,
 
     if (param != opts)
         Py_DECREF(param);
-#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35
+#if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35) || GLP_MAJOR_VERSION >= 5
     iocp.presolve = GLP_ON;
 #endif
 
@@ -926,7 +926,7 @@ static PyObject *integer(PyObject *self, PyObject *args,
     switch (info){
 
         case 0:
-#if GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35
+#if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35) || GLP_MAJOR_VERSION >= 5
         case GLP_EMIPGAP:
 #endif
         case GLP_ETMLIM:
