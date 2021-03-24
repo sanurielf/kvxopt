@@ -104,12 +104,12 @@ jobs:
 
       - name: Cofigure Visual Studio 2019
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         shell: cmd
 
       - name: Compile GLPK
         run: |
-            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
             cd glpk-${{ env.GLPK_VERSION }}\w64
             cp config_VC config.h
             nmake /f Makefile_VC glpk.lib
@@ -119,7 +119,7 @@ jobs:
 
       - name: Compile OSQP
         run: |
-            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
             cd osqp
             mkdir build
             cd build
