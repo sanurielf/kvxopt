@@ -67,7 +67,7 @@ jobs:
             cd build
             cmake ..
             sudo cmake --build . --target install
-            ldconfig -v
+            sudo ldconfig -v
 
       - name: Install
         run: |
