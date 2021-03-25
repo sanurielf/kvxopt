@@ -39,11 +39,11 @@ jobs:
           PYTHON_TARGET: win-amd64
           OPENBLAS_SHA256: a307629479260ebfed057a3fc466d2be83a2bb594739a99c06ec830173273135
 
-        - ARCH: x86
-          VC_TARGET: 32
-          CMAKE_TARGET: x64
-          PYTHON_TARGET: win32
-          OPENBLAS_SHA256: 7eab2be38e4c79f0ce496e7cb3ae28be457aef1b21e70eb7e32147b479b7bb57
+        #- ARCH: x86
+        #  VC_TARGET: 32
+        #  CMAKE_TARGET: x64
+        #  PYTHON_TARGET: win32
+        #  OPENBLAS_SHA256: 7eab2be38e4c79f0ce496e7cb3ae28be457aef1b21e70eb7e32147b479b7bb57
 
     steps:
       - uses: actions/checkout@v2
@@ -104,12 +104,12 @@ jobs:
 
       - name: Cofigure Visual Studio 2019
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
         shell: cmd
 
       - name: Compile GLPK
         run: |
-            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
             cd glpk-${{ env.GLPK_VERSION }}\w64
             cp config_VC config.h
             nmake /f Makefile_VC glpk.lib
@@ -119,7 +119,7 @@ jobs:
 
       - name: Compile OSQP
         run: |
-            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
             cd osqp
             mkdir build
             cd build
