@@ -86,7 +86,7 @@ jobs:
             cd osqp
             mkdir build
             cd build
-            cmake -DCMAKE_INSTALL_PREFIX=dist ..
+            cmake --G "MinGW Makefiles" DCMAKE_INSTALL_PREFIX=dist ..
             cmake --build . --target install
 
       - name: Set OSQP path
