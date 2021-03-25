@@ -31,19 +31,19 @@ jobs:
       matrix:
         python-version: [3.5, 3.6, 3.7, 3.8, 3.9]
         suite-sparse: [src_suitesparse]
-        ARCH: [x64]
+        ARCH: [x64, x86]
         include:
         - ARCH: x64
           VC_TARGET: 64
-          CMAKE_TARGET: Win32
+          CMAKE_TARGET: x64
           PYTHON_TARGET: win-amd64
           OPENBLAS_SHA256: a307629479260ebfed057a3fc466d2be83a2bb594739a99c06ec830173273135
 
-        #- ARCH: x86
-        #  VC_TARGET: 32
-        #  CMAKE_TARGET: x64
-        #  PYTHON_TARGET: win32
-        #  OPENBLAS_SHA256: 7eab2be38e4c79f0ce496e7cb3ae28be457aef1b21e70eb7e32147b479b7bb57
+        - ARCH: x86
+          VC_TARGET: 32
+          CMAKE_TARGET: Win32
+          PYTHON_TARGET: win32
+          OPENBLAS_SHA256: 7eab2be38e4c79f0ce496e7cb3ae28be457aef1b21e70eb7e32147b479b7bb57
 
     steps:
       - uses: actions/checkout@v2
@@ -123,7 +123,7 @@ jobs:
             cd osqp
             mkdir build
             cd build
-            cmake -DCMAKE_INSTALL_PREFIX=dist ..
+            cmake -G "Visual Studio 16 2019" -A ${{ matrix.CMAKE_TARGET }} -DCMAKE_INSTALL_PREFIX=dist ..
             cmake --build . --target install
         shell: cmd
 
