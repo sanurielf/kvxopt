@@ -35,7 +35,7 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
-          install: coreutils unzip git make cmake
+          install: coreutils unzip git make
 
       - name: Install dependencies
         run: |
@@ -45,7 +45,7 @@ jobs:
       - name: Install libraries
         shell: msys2 {0}
         run: |
-            pacman -S --noconfirm mingw-w64-x86_64-lapack mingw-w64-x86_64-gsl mingw-w64-x86_64-fftw mingw-w64-x86_64-glpk
+            pacman -S --noconfirm mingw-w64-x86_64-lapack mingw-w64-x86_64-gsl mingw-w64-x86_64-fftw mingw-w64-x86_64-glpk mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc
             echo "KVXOPT_GSL_LIB_DIR=$(cygpath -m /mingw64/lib)" >> $GITHUB_ENV
             echo "KVXOPT_GSL_INC_DIR=$(cygpath -m /mingw64/include)" >> $GITHUB_ENV
             echo "KVXOPT_FFTW_LIB_DIR=$(cygpath -m /mingw64/lib)" >> $GITHUB_ENV
@@ -86,8 +86,13 @@ jobs:
             cd osqp
             mkdir build
             cd build
-            cmake --G "MinGW Makefiles" DCMAKE_INSTALL_PREFIX=dist ..
-            cmake --build . --target install
+            export CC=$(cygpath -m /mingw64/bin)/gcc
+            export CXX=$(cygpath -m /mingw64/bin)/g++
+
+            cmake -G "MSYS Makefiles" -D CMAKE_INSTALL_PREFIX=dist -D CMAKE_C_COMPILER_WORKS=1 -D CMAKE_CXX_COMPILER_WORKS=1 -D CMAKE_MAKE_PROGRAM=make ..
+            make
+            make install
+      # cmake --build . --target install
 
       - name: Set OSQP path
         shell: msys2 {0}
