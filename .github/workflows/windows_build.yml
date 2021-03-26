@@ -1,11 +1,11 @@
 name: Windows build 2.7 with MINGW
 on:
   push:
-    branches: [ master ]
+    branches: [ master, dev ]
   schedule:
     - cron: '0 0 * * 0'
 
-jobs:    
+jobs:
   build:
     runs-on: windows-latest
     env:
@@ -13,8 +13,10 @@ jobs:
       KVXOPT_BUILD_FFTW: 1
       KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_DSDP: 0
+      KVXOPT_BUILD_OSQP: 1
       SUITESPARSE_VERSION: 5.8.1
       SUITESPARSE_SHA256: 06726e471fbaa55f792578f9b4ab282ea9d008cf39ddcc3b42b73400acddef40
+      OSQP_VERSION: 0.6.0
 
     strategy:
       fail-fast: false
@@ -33,6 +35,7 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
+          install: coreutils unzip git make
 
       - name: Install dependencies
         run: |
@@ -42,14 +45,14 @@ jobs:
       - name: Install libraries
         shell: msys2 {0}
         run: |
-            pacman -S --noconfirm mingw-w64-x86_64-lapack mingw-w64-x86_64-gsl mingw-w64-x86_64-fftw mingw-w64-x86_64-glpk
-            echo "KVXOPT_GSL_LIB_DIR=$(cygpath -m /mingw64/lib)" >> $GITHUB_ENV 
-            echo "KVXOPT_GSL_INC_DIR=$(cygpath -m /mingw64/include)" >> $GITHUB_ENV 
-            echo "KVXOPT_FFTW_LIB_DIR=$(cygpath -m /mingw64/lib)" >> $GITHUB_ENV 
-            echo "KVXOPT_FFTW_INC_DIR=$(cygpath -m /mingw64/include)" >> $GITHUB_ENV 
-            echo "KVXOPT_GLPK_LIB_DIR=$(cygpath -m /mingw64/lib)" >> $GITHUB_ENV 
-            echo "KVXOPT_GLPK_INC_DIR=$(cygpath -m /mingw64/include)" >> $GITHUB_ENV 
-            echo "KVXOPT_BLAS_LIB_DIR=$(cygpath -m /mingw64/lib)" >> $GITHUB_ENV 
+            pacman -S --noconfirm mingw-w64-x86_64-lapack mingw-w64-x86_64-gsl mingw-w64-x86_64-fftw mingw-w64-x86_64-glpk mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc
+            echo "KVXOPT_GSL_LIB_DIR=$(cygpath -m /mingw64/lib)" >> $GITHUB_ENV
+            echo "KVXOPT_GSL_INC_DIR=$(cygpath -m /mingw64/include)" >> $GITHUB_ENV
+            echo "KVXOPT_FFTW_LIB_DIR=$(cygpath -m /mingw64/lib)" >> $GITHUB_ENV
+            echo "KVXOPT_FFTW_INC_DIR=$(cygpath -m /mingw64/include)" >> $GITHUB_ENV
+            echo "KVXOPT_GLPK_LIB_DIR=$(cygpath -m /mingw64/lib)" >> $GITHUB_ENV
+            echo "KVXOPT_GLPK_INC_DIR=$(cygpath -m /mingw64/include)" >> $GITHUB_ENV
+            echo "KVXOPT_BLAS_LIB_DIR=$(cygpath -m /mingw64/lib)" >> $GITHUB_ENV
             echo "$(cygpath -m /mingw64/bin)" >> $GITHUB_PATH
 
       - name: Config suite-sparse library windows
@@ -70,6 +73,33 @@ jobs:
             echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
         if: ${{ matrix.suite-sparse == 'src_suitesparse' }}
 
+      - name: Get OSQP
+        shell: msys2 {0}
+        run: |
+            git clone --recursive https://github.com/oxfordcontrol/osqp.git
+            cd osqp
+            git checkout v${{ env.OSQP_VERSION }}
+
+      - name: Compile OSQP
+        shell: msys2 {0}
+        run: |
+            cd osqp
+            mkdir build
+            cd build
+            export CC=$(cygpath -m /mingw64/bin)/gcc
+            export CXX=$(cygpath -m /mingw64/bin)/g++
+
+            cmake -G "MSYS Makefiles" -D CMAKE_INSTALL_PREFIX=dist -D CMAKE_C_COMPILER_WORKS=1 -D CMAKE_CXX_COMPILER_WORKS=1 -D CMAKE_MAKE_PROGRAM=make ..
+            make
+            make install
+      # cmake --build . --target install
+
+      - name: Set OSQP path
+        shell: msys2 {0}
+        run: |
+            echo "KVXOPT_OSQP_LIB_DIR=${{ github.workspace}}/osqp/build/dist/lib" >> $GITHUB_ENV
+            echo "KVXOPT_OSQP_INC_DIR=${{ github.workspace}}/osqp/build/dist/include/osqp" >> $GITHUB_ENV
+
       - name: Install (windows)
         run: |
           python setup.py build --compiler=mingw32
@@ -78,5 +108,5 @@ jobs:
 
       - name: Test
         run: |
-          python -c 'from kvxopt import blas,lapack,glpk,fftw,gsl,cholmod,umfpack,klu'
+          python -c 'from kvxopt import blas,lapack,glpk,osqp,fftw,gsl,cholmod,umfpack,klu'
           py.test --cov=kvxopt tests/

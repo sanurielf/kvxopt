@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2020 M. Andersen and L. Vandenberghe.
+ * Copyright 2012-2021 M. Andersen and L. Vandenberghe.
  * Copyright 2010-2011 L. Vandenberghe.
  * Copyright 2004-2009 J. Dahl and L. Vandenberghe.
  *
@@ -42,6 +42,7 @@ spmatrix * SpMatrix_New(int_t, int_t, int_t, int ) ;
 spmatrix * SpMatrix_NewFromMatrix(matrix *, int) ;
 spmatrix * SpMatrix_NewFromSpMatrix(spmatrix *, int) ;
 spmatrix * SpMatrix_NewFromIJV(matrix *, matrix *, matrix *, int_t, int_t, int) ;
+spmatrix * SpMatrix_Trans(spmatrix *, int);
 void free_ccs(ccs *);
 int get_id(void *val, int val_type);
 
@@ -275,7 +276,7 @@ void (*symv[])(char *, int *, void *, void *, int *, void *, int *,
 
 extern double dlange_(char *, int *, int *, void *, int *, void *);
 extern double zlange_(char *, int *, int *, void *, int *, void *);
-double (*lange[])(char *, int *, int *, void *, int *, void *) = 
+double (*lange[])(char *, int *, int *, void *, int *, void *) =
 { NULL, dlange_, zlange_ };
 
 static void mtx_iabs(void *src, void *dest, int n) {
@@ -385,7 +386,7 @@ static int SpMatrix_Check_func(void *o) {
   return SpMatrix_Check((PyObject *)o);
 }
 
-static char doc_norm[] = 
+static char doc_norm[] =
   "Matrix or vector norm. ";
 
 PyObject * base_norm(PyObject *self, PyObject *args, PyObject *kwargs) {
@@ -410,7 +411,7 @@ PyObject * base_norm(PyObject *self, PyObject *args, PyObject *kwargs) {
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|c", kwlist,
       &A, &ord)) return NULL;
 #endif
-  
+
   if (!Matrix_Check(A) && !SpMatrix_Check(A)) err_mtrx("A");
   if (ord != 'M' && ord != '1' && ord != 'I' && ord != 'F')
     err_char("ord", "'M', '1', 'I', 'F'");
@@ -2138,7 +2139,7 @@ PyMODINIT_FUNC initbase(void)
 
 #endif
 {
-  static void *base_API[8];
+  static void *base_API[9];
   PyObject *base_mod, *c_api_object;
 
 #if PY_MAJOR_VERSION >= 3
@@ -2201,6 +2202,7 @@ PyMODINIT_FUNC initbase(void)
   base_API[5] = (void *)SpMatrix_NewFromSpMatrix;
   base_API[6] = (void *)SpMatrix_NewFromIJV;
   base_API[7] = (void *)SpMatrix_Check_func;
+  base_API[8] = (void *)SpMatrix_Trans;
 
 #if PY_MAJOR_VERSION >= 3
   /* Create a Capsule containing the API pointer array's address */
