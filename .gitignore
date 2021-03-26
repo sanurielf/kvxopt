@@ -6,3 +6,5 @@ __pycache__/*
 *.dll
 .coverage
 doc/build*
+*.so
+*.bat

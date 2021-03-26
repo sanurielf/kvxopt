@@ -1,11 +1,11 @@
 name: Linux build
 on:
   push:
-    branches: [ master ]
+    branches: [ master, dev ]
   schedule:
     - cron: '0 0 * * 0'
 
-jobs:    
+jobs:
   build:
     runs-on: ubuntu-latest
     env:
@@ -13,6 +13,8 @@ jobs:
       KVXOPT_BUILD_FFTW: 1
       KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_DSDP: 1
+      KVXOPT_BUILD_OSQP: 1
+      OSQP_VERSION:  0.6.0
       SUITESPARSE_VERSION: 5.8.1
       SUITESPARSE_SHA256: 06726e471fbaa55f792578f9b4ab282ea9d008cf39ddcc3b42b73400acddef40
 
@@ -42,7 +44,7 @@ jobs:
         run:
             sudo apt-get install libsuitesparse-dev
         if: ${{ matrix.suite-sparse == 'lib_suitesparse' }}
-        
+
       - name: Config suite-sparse source
         run: |
             wget https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/v${SUITESPARSE_VERSION}.tar.gz
@@ -52,7 +54,22 @@ jobs:
             echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
         if: ${{ matrix.suite-sparse == 'src_suitesparse' }}
 
-      - name: Install 
+      - name: Get OSQP
+        run: |
+            git clone --recursive https://github.com/oxfordcontrol/osqp.git
+            cd osqp
+            git checkout v${{ env.OSQP_VERSION }}
+
+      - name: Compile OSQP
+        run: |
+            cd osqp
+            mkdir build
+            cd build
+            cmake ..
+            sudo cmake --build . --target install
+            sudo ldconfig -v
+
+      - name: Install
         run: |
           python setup.py build
           pip install .
@@ -60,5 +77,5 @@ jobs:
       - name: Test
         run: |
           echo ${KVXOPT_SUITESPARSE_SRC_DIR}
-          python -c 'from kvxopt import blas,dsdp,lapack,glpk,fftw,gsl,cholmod,umfpack,klu'
+          python -c 'from kvxopt import blas,dsdp,lapack,glpk,osqp,fftw,gsl,cholmod,umfpack,klu'
           py.test --cov=kvxopt tests/

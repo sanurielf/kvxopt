@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2020 M. Andersen and L. Vandenberghe.
+ * Copyright 2012-2021 M. Andersen and L. Vandenberghe.
  * Copyright 2010-2011 L. Vandenberghe.
  * Copyright 2004-2009 J. Dahl and L. Vandenberghe.
  *
@@ -27,7 +27,7 @@
 
 /* ANSI99 complex is disabled during build of CHOLMOD */
 
-#if !defined(NO_ANSI99_COMPLEX) 
+#if !defined(NO_ANSI99_COMPLEX)
 #include "complex.h"
 #if !defined(_MSC_VER)
 #define MAT_BUFZ(O)  ((double complex *)((matrix *)O)->buffer)
@@ -68,6 +68,21 @@ typedef struct {
   ccs *obj;
 } spmatrix;
 
+#if PY_MAJOR_VERSION >= 3
+#define PYINT_CHECK(value) PyLong_Check(value)
+#define PYINT_AS_LONG(value) PyLong_AS_LONG(value)
+#define PYSTRING_FROMSTRING(str) PyUnicode_FromString(str)
+#define PYSTRING_CHECK(a) PyUnicode_Check(a)
+#define PYSTRING_COMPARE(a,b) PyUnicode_CompareWithASCIIString(a, b)
+#else
+#define PYINT_CHECK(value) PyInt_Check(value)
+#define PYINT_AS_LONG(value) PyInt_AS_LONG(value)
+#define PYSTRING_FROMSTRING(str) PyString_FromString(str)
+#define PYSTRING_CHECK(a) PyString_Check(a)
+#define PYSTRING_COMPARE(a,b) strcmp(PyString_AsString(a), b)
+#endif
+
+
 #ifdef BASE_MODULE
 
 #define Matrix_Check(self) PyObject_TypeCheck(self, &matrix_tp)
@@ -89,6 +104,7 @@ static void **kvxopt_API;
   (*(spmatrix * (*)(matrix *, matrix *, matrix *, int_t, int_t, int)) \
       kvxopt_API[6])
 #define SpMatrix_Check (*(int * (*)(void *)) kvxopt_API[7])
+#define SpMatrix_Trans (*(spmatrix * (*)(spmatrix *)) kvxopt_API[8])
 
 /* Return -1 and set exception on error, 0 on success. */
 static int

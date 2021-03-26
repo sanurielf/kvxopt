@@ -46,6 +46,15 @@ GLPK_LIB_DIR = '/usr/lib'
 # Directory containing glpk.h (used only when BUILD_GLPK = 1).
 GLPK_INC_DIR = '/usr/include'
 
+# Set to 1 if you are installing the osqp module.
+BUILD_OSQP = 0
+
+# Directory containing libglpk (used only when BUILD_OSQP = 1).
+OSQP_LIB_DIR = '/usr/local/lib'
+
+# Directory containing glpk.h (used only when BUILD_OSQP = 1).
+OSQP_INC_DIR = '/usr/local/include/osqp'
+
 # Set to 1 if you are installing the DSDP module.
 BUILD_DSDP = 0
 
@@ -55,7 +64,7 @@ DSDP_LIB_DIR = '/usr/lib'
 # Directory containing dsdp5.h (used only when BUILD_DSDP = 1).
 DSDP_INC_DIR = '/usr/include/dsdp'
 
-# Guess SUITESPARSE_LIB_DIR and SUITESPARSE_INC_DIR
+# Guess {package}_LIB_DIR and {package}_INC_DIR
 if sys.platform.startswith("darwin"):
     # macOS
     SUITESPARSE_LIB_DIR = '/usr/local/lib'
@@ -74,12 +83,7 @@ else:
         SUITESPARSE_LIB_DIR = '/usr/lib'
         SUITESPARSE_INC_DIR = '/usr/include'
 
-if sys.platform.startswith("win"):
-    GSL_MACROS = [('GSL_DLL',''),('WIN32','')]
-    FFTW_MACROS = [('FFTW_DLL',''),('FFTW_NO_Complex','')]
-else:
-    GSL_MACROS = []
-    FFTW_MACROS = []
+
 
 # Directory containing SuiteSparse source
 SUITESPARSE_SRC_DIR = ''
@@ -110,6 +114,9 @@ FFTW_INC_DIR = os.environ.get("KVXOPT_FFTW_INC_DIR",FFTW_INC_DIR)
 BUILD_GLPK = int(os.environ.get("KVXOPT_BUILD_GLPK",BUILD_GLPK))
 GLPK_LIB_DIR = os.environ.get("KVXOPT_GLPK_LIB_DIR",GLPK_LIB_DIR)
 GLPK_INC_DIR = os.environ.get("KVXOPT_GLPK_INC_DIR",GLPK_INC_DIR)
+BUILD_OSQP = int(os.environ.get("KVXOPT_BUILD_OSQP",BUILD_OSQP))
+OSQP_LIB_DIR = os.environ.get("KVXOPT_OSQP_LIB_DIR",OSQP_LIB_DIR)
+OSQP_INC_DIR = os.environ.get("KVXOPT_OSQP_INC_DIR",OSQP_INC_DIR)
 BUILD_DSDP = int(os.environ.get("KVXOPT_BUILD_DSDP",BUILD_DSDP))
 DSDP_LIB_DIR = os.environ.get("KVXOPT_DSDP_LIB_DIR",DSDP_LIB_DIR)
 DSDP_INC_DIR = os.environ.get("KVXOPT_DSDP_INC_DIR",DSDP_INC_DIR)
@@ -131,6 +138,8 @@ extmods = []
 SUITESPARSE_CONF_LIB = ([], ['suitesparseconfig'])[SUITESPARSE_CONFIG]
 
 
+
+
 # Macros
 MACROS = []
 if BLAS_NOUNDERSCORES: MACROS.append(('BLAS_NO_UNDERSCORE',''))
@@ -138,14 +147,26 @@ if BLAS_NOUNDERSCORES: MACROS.append(('BLAS_NO_UNDERSCORE',''))
 if platform.architecture() == ('64bit', 'WindowsPE') and not MSVC:
     MACROS += [('MS_WIN64', 1)]
 
+
+if sys.platform.startswith("win"):
+    GSL_MACROS = [('GSL_DLL',''),('WIN32','')]
+    GSL_LIBS = ['gsl']
+    GSL_EXTRA_LINK_ARGS = []
+    FFTW_MACROS = [('FFTW_DLL',''),('FFTW_NO_Complex','')]
+else:
+    GSL_MACROS = []
+    GSL_LIBS = M_LIB + ['gsl'] + BLAS_LIB
+    GSL_EXTRA_LINK_ARGS = BLAS_EXTRA_LINK_ARGS
+    FFTW_MACROS = []
+
 # optional modules
 
 if BUILD_GSL:
-    gsl = Extension('gsl', libraries = M_LIB + ['gsl'] + BLAS_LIB,
+    gsl = Extension('gsl', libraries = GSL_LIBS,
         include_dirs = [ GSL_INC_DIR ],
-        library_dirs = [ GSL_LIB_DIR, BLAS_LIB_DIR ],
+        library_dirs = [ GSL_LIB_DIR ],
         define_macros = MACROS + GSL_MACROS,
-        extra_link_args = BLAS_EXTRA_LINK_ARGS,
+        extra_link_args = GSL_EXTRA_LINK_ARGS,
         sources = ['src/C/gsl.c'] )
     extmods += [gsl];
 
@@ -166,12 +187,20 @@ if BUILD_GLPK:
         sources = ['src/C/glpk.c'] )
     extmods += [glpk];
 
+if BUILD_OSQP:
+    osqp = Extension('osqp', libraries = ['osqp'],
+        include_dirs = [ OSQP_INC_DIR ],
+        library_dirs = [ OSQP_LIB_DIR ],
+        define_macros = MACROS + [('DDEBUG', ''), ('PRINTING', '')],
+        sources = ['src/C/osqp.c'] )
+    extmods += [osqp];
+
 if BUILD_DSDP:
     dsdp = Extension('dsdp', libraries = ['dsdp'] + LAPACK_LIB + BLAS_LIB,
         include_dirs = [ DSDP_INC_DIR ],
         library_dirs = [ DSDP_LIB_DIR, BLAS_LIB_DIR ],
         extra_link_args = BLAS_EXTRA_LINK_ARGS,
-        define_macros = MACROS, 
+        define_macros = MACROS,
         sources = ['src/C/dsdp.c'] )
     extmods += [dsdp];
 
@@ -227,15 +256,15 @@ if not SUITESPARSE_SRC_DIR:
     library_dirs = [SUITESPARSE_LIB_DIR, BLAS_LIB_DIR],
     sources = ['src/C/klu.c'])
 else:
-    klu = Extension('klu', 
-        include_dirs = [ SUITESPARSE_SRC_DIR + '/KLU/Include', 
+    klu = Extension('klu',
+        include_dirs = [ SUITESPARSE_SRC_DIR + '/KLU/Include',
             SUITESPARSE_SRC_DIR + '/KLU/Source',
-            SUITESPARSE_SRC_DIR + '/AMD/Include', 
-            SUITESPARSE_SRC_DIR + '/AMD/Source', 
-            SUITESPARSE_SRC_DIR + '/COLAMD/Include', 
-            SUITESPARSE_SRC_DIR + '/COLAMD/Source', 
-            SUITESPARSE_SRC_DIR + '/BTF/Include', 
-            SUITESPARSE_SRC_DIR + '/BTF/Source', 
+            SUITESPARSE_SRC_DIR + '/AMD/Include',
+            SUITESPARSE_SRC_DIR + '/AMD/Source',
+            SUITESPARSE_SRC_DIR + '/COLAMD/Include',
+            SUITESPARSE_SRC_DIR + '/COLAMD/Source',
+            SUITESPARSE_SRC_DIR + '/BTF/Include',
+            SUITESPARSE_SRC_DIR + '/BTF/Source',
             SUITESPARSE_SRC_DIR + '/SuiteSparse_config' ],
         library_dirs = [ BLAS_LIB_DIR ],
         define_macros = MACROS + [('NTIMER', '1'), ('NCHOLMOD', '1')],
@@ -297,7 +326,7 @@ misc_solvers = Extension('misc_solvers',
     extra_link_args = BLAS_EXTRA_LINK_ARGS,
     sources = ['src/C/misc_solvers.c'] )
 
-extmods += [base, blas, lapack, umfpack, klu, cholmod, amd, misc_solvers] 
+extmods += [base, blas, lapack, umfpack, klu, cholmod, amd, misc_solvers]
 
 
 setup (name = 'kvxopt',
@@ -305,7 +334,7 @@ setup (name = 'kvxopt',
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     long_description = '''
-KVXOPT is a fork from CVXOPT wich contains more functions and 
+KVXOPT is a fork from CVXOPT wich contains more functions and
 wrappers to Suite Sparse library.
 
 CVXOPT is a free software package for convex optimization based on the
@@ -339,4 +368,3 @@ language.
         ],
     zip_safe=False
     )
-
