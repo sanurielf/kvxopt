@@ -1,6 +1,9 @@
 name: Publish Manylinux
 
 on:
+  push:
+    tags:
+      - '*'
   release:
     types: [ prereleased, released ]
 
@@ -40,8 +43,8 @@ jobs:
       - name: Build manylinux1 Python wheels
         uses: RalfG/python-wheels-manylinux-build@v0.3.3-manylinux1_x86_64
         with:
-          pre-build-command: 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/; sh .github/workflows/build_osqp_linux.sh'
-          python-versions: 'cp27-cp27m cp27-cp27mu cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
+          pre-build-command: 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/ && ls && sh .github/workflows/build_osqp_linux.sh'
+          python-versions: 'cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
           build-requirements: ''
           system-packages: 'openblas-devel fftw-devel glpk-devel gsl-devel suitesparse-devel'
 
@@ -49,7 +52,7 @@ jobs:
         uses: RalfG/python-wheels-manylinux-build@v0.3.3-manylinux2010_x86_64
         with:
           pre-build-command: 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/'
-          python-versions: 'cp27-cp27m cp27-cp27mu cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
+          python-versions: 'cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
           build-requirements: ''
           system-packages: 'openblas-devel fftw-devel glpk-devel gsl-devel suitesparse-devel'
 

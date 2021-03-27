@@ -21,7 +21,7 @@ jobs:
       SUITESPARSE_VERSION: 5.9.0
       SUITESPARSE_SHA256: 7bdd4811f1cf0767c5fdb5e435817fdadee50b0acdb598f4882ae7b8291a7f24
       OPENBLAS_VERSION: 0.3.10
-      GLPK_VERSION: 5.0
+      GLPK_VERSION: "5.0"
       GLPK_SHA256: 4a1013eebb50f728fc601bdd833b0b2870333c3b3e5a816eeba921d95bec6f15
       OSQP_VERSION: 0.6.2
 
@@ -56,7 +56,7 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
-          install: coreutils unzip
+          install: coreutils unzip git
 
       - name: Install dependencies
         run: |
