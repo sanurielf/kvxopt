@@ -11,12 +11,16 @@ jobs:
     env:
       KVXOPT_BUILD_GSL: 0
       KVXOPT_BUILD_FFTW: 0
-      KVXOPT_BUILD_GLPK: 0
+      KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_DSDP: 0
       KVXOPT_MSVC: 1
+      KVXOPT_BUILD_OSQP: 1
       SUITESPARSE_VERSION: 5.8.1
       SUITESPARSE_SHA256: 06726e471fbaa55f792578f9b4ab282ea9d008cf39ddcc3b42b73400acddef40
       OPENBLAS_VERSION: 0.3.10
+      GLPK_VERSION: 4.65
+      GLPK_SHA256: 4281e29b628864dfe48d393a7bedd781e5b475387c20d8b0158f329994721a10
+      OSQP_VERSION: 0.6.0
 
     strategy:
       matrix:
@@ -26,11 +30,13 @@ jobs:
         include:
         - ARCH: x64
           VC_TARGET: 64
+          CMAKE_TARGET: x64
           PYTHON_TARGET: win-amd64
           OPENBLAS_SHA256: a307629479260ebfed057a3fc466d2be83a2bb594739a99c06ec830173273135
 
         - ARCH: x86
           VC_TARGET: 32
+          CMAKE_TARGET: Win32
           PYTHON_TARGET: win32
           OPENBLAS_SHA256: 7eab2be38e4c79f0ce496e7cb3ae28be457aef1b21e70eb7e32147b479b7bb57
 
@@ -68,7 +74,22 @@ jobs:
             echo "KVXOPT_LAPACK_LIB=libopenblas" >> $GITHUB_ENV
             echo "KVXOPT_BLAS_LIB=libopenblas" >> $GITHUB_ENV
 
-      - name: Config suite-sparse source
+      - name: Get GLPK
+        shell: msys2 {0}
+        run: |
+            wget -nv http://ftp.gnu.org/gnu/glpk/glpk-${{ env.GLPK_VERSION }}.tar.gz
+            echo "${GLPK_SHA256}  glpk-${{ env.GLPK_VERSION }}.tar.gz" > GLPK.sha256
+            shasum -a 256 -c GLPK.sha256
+            tar -xf glpk-${{ env.GLPK_VERSION }}.tar.gz
+
+      - name: Get OSQP
+        shell: msys2 {0}
+        run: |
+            git clone --recursive https://github.com/oxfordcontrol/osqp.git
+            cd osqp
+            git checkout v${{ env.OSQP_VERSION }}
+
+      - name: Download suite-sparse source
         shell: msys2 {0}
         run: |
             wget https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/v${{ env.SUITESPARSE_VERSION }}.tar.gz
@@ -77,11 +98,42 @@ jobs:
             tar -xf v${{ env.SUITESPARSE_VERSION }}.tar.gz
             echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
 
-
       - name: Cofigure Visual Studio 2019
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
         shell: cmd
+
+      - name: Compile GLPK
+        run: |
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
+            cd glpk-${{ env.GLPK_VERSION }}\w64
+            cp config_VC config.h
+            nmake /f Makefile_VC glpk.lib
+            dir
+            cd ..\..
+        shell: cmd
+
+      - name: Compile OSQP
+        run: |
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
+            cd osqp
+            mkdir build
+            cd build
+            cmake -G "Visual Studio 16 2019" -A ${{ matrix.CMAKE_TARGET }} -DCMAKE_INSTALL_PREFIX=dist ..
+            cmake --build . --target install
+        shell: cmd
+
+      - name: Set GLPK path
+        shell: msys2 {0}
+        run: |
+            echo "KVXOPT_GLPK_LIB_DIR=${{ github.workspace}}\glpk-${{ env.GLPK_VERSION }}\w64" >> $GITHUB_ENV
+            echo "KVXOPT_GLPK_INC_DIR=${{ github.workspace}}\glpk-${{ env.GLPK_VERSION }}\src" >> $GITHUB_ENV
+
+      - name: Set OSQP path
+        shell: msys2 {0}
+        run: |
+            echo "KVXOPT_OSQP_LIB_DIR=${{ github.workspace}}\osqp\build\dist\lib" >> $GITHUB_ENV
+            echo "KVXOPT_OSQP_INC_DIR=${{ github.workspace}}\osqp\build\dist\include\osqp" >> $GITHUB_ENV
 
       - name: Install (windows)
         run: |

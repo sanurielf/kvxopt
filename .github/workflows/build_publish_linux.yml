@@ -12,6 +12,8 @@ jobs:
       KVXOPT_BUILD_GSL: 1
       KVXOPT_BUILD_FFTW: 1
       KVXOPT_BUILD_GLPK: 1
+      KVXOPT_BUILD_OSQP: 1
+      OSQP_VERSION:  0.6.0
       KVXOPT_BUILD_DSDP: 0
       KVXOPT_LAPACK_LIB: openblas
       KVXOPT_BLAS_LIB: openblas
@@ -38,7 +40,7 @@ jobs:
       - name: Build manylinux1 Python wheels
         uses: RalfG/python-wheels-manylinux-build@v0.3.1-manylinux1_x86_64
         with:
-          pre-build-command: 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/'
+          pre-build-command: 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/; sh .github/workflows/build_osqp_linux.sh'
           python-versions: 'cp27-cp27m cp27-cp27mu cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
           build-requirements: ''
           system-packages: 'openblas-devel fftw-devel glpk-devel gsl-devel suitesparse-devel'
