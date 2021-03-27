@@ -1,6 +1,9 @@
 name: Publish MacOS
 
 on:
+  push:
+    tags:
+      - '*'
   release:
     types: [ prereleased, released ]
 
