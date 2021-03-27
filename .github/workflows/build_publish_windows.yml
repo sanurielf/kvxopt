@@ -1,6 +1,9 @@
 name: Publish Windows
 
 on:
+  push:
+    tags:
+      - '*'
   release:
     types: [ prereleased, released ]
 
