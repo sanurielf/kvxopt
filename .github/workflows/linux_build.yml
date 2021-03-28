@@ -17,6 +17,7 @@ jobs:
       OSQP_VERSION:  0.6.2
       SUITESPARSE_VERSION: 5.9.0
       SUITESPARSE_SHA256: 7bdd4811f1cf0767c5fdb5e435817fdadee50b0acdb598f4882ae7b8291a7f24
+      OSQP_SHA256: 26fe91406bca93b7f105245920bfb1851e3213d4b18b30465d745a0985a96594
 
     strategy:
       fail-fast: false
@@ -54,20 +55,15 @@ jobs:
             echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
         if: ${{ matrix.suite-sparse == 'src_suitesparse' }}
 
-      - name: Get OSQP
+      - name: Get OSQP binaries
         run: |
-            git clone --recursive https://github.com/oxfordcontrol/osqp.git
-            cd osqp
-            git checkout v${{ env.OSQP_VERSION }}
-
-      - name: Compile OSQP
-        run: |
-            cd osqp
-            mkdir build
-            cd build
-            cmake ..
-            sudo cmake --build . --target install
-            sudo ldconfig -v
+            wget https://bintray.com/bstellato/generic/download_file?file_path=OSQP%2F${OSQP_VERSION}%2Fosqp-${OSQP_VERSION}-linux64.tar.gz -O osqp-${OSQP_VERSION}-linux64.tar.gz
+            echo "${OSQP_SHA256}  osqp-${OSQP_VERSION}-linux64.tar.gz" > OSQP.sha256
+            shasum -a 256 -c OSQP.sha256
+            tar -xf osqp-${OSQP_VERSION}-linux64.tar.gz
+            echo "KVXOPT_OSQP_LIB_DIR=${{ github.workspace}}/osqp-${{ env.OSQP_VERSION }}-linux64/lib" >> $GITHUB_ENV
+            echo "KVXOPT_OSQP_INC_DIR=${{ github.workspace}}/osqp-${{ env.OSQP_VERSION }}-linux64/include" >> $GITHUB_ENV
+            echo "LD_LIBRARY_PATH=${{ github.workspace}}/osqp-${{ env.OSQP_VERSION }}-linux64/lib" >> $GITHUB_ENV
 
       - name: Install
         run: |

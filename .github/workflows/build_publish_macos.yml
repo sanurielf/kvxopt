@@ -16,6 +16,7 @@ jobs:
       KVXOPT_BUILD_FFTW: 1
       KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_DSDP: 0
+      KVXOPT_BUILD_OSQP: 1
 
     strategy:
       matrix:
@@ -38,7 +39,7 @@ jobs:
 
       - name: Install libraries
         run: |
-            brew install openblas glpk gsl fftw suite-sparse
+            brew install openblas glpk gsl fftw suite-sparse osqp
 
       - name: Build 
         run: |
