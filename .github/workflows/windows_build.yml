@@ -92,7 +92,6 @@ jobs:
             cmake -G "MSYS Makefiles" -D CMAKE_INSTALL_PREFIX=dist -D CMAKE_C_COMPILER_WORKS=1 -D CMAKE_CXX_COMPILER_WORKS=1 -D CMAKE_MAKE_PROGRAM=make ..
             make
             make install
-      # cmake --build . --target install
 
       - name: Set OSQP path
         shell: msys2 {0}
