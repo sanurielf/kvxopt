@@ -98,7 +98,7 @@ jobs:
     runs-on: windows-latest
     env:
       KVXOPT_BUILD_GSL: 0
-      KVXOPT_BUILD_FFTW: 0
+      KVXOPT_BUILD_FFTW: 1
       KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_DSDP: 0
       KVXOPT_MSVC: 1
@@ -106,6 +106,7 @@ jobs:
       SUITESPARSE_VERSION: 5.9.0
       SUITESPARSE_SHA256: 7bdd4811f1cf0767c5fdb5e435817fdadee50b0acdb598f4882ae7b8291a7f24
       OPENBLAS_VERSION: 0.3.10
+      FFTW_VERSION: 3.3.5
 
     strategy:
       matrix:
@@ -118,12 +119,14 @@ jobs:
           CMAKE_TARGET: x64
           PYTHON_TARGET: win-amd64
           OPENBLAS_SHA256: a307629479260ebfed057a3fc466d2be83a2bb594739a99c06ec830173273135
+          FFTW_SHA256: cfd88dc0e8d7001115ea79e069a2c695d52c8947f5b4f3b7ac54a192756f439f
 
         - ARCH: x86
           VC_TARGET: 32
           CMAKE_TARGET: Win32
           PYTHON_TARGET: win32
           OPENBLAS_SHA256: 7eab2be38e4c79f0ce496e7cb3ae28be457aef1b21e70eb7e32147b479b7bb57
+          FFTW_SHA256: 29882a43033c9393479a4df52a2e9120589c06a2b724155b1a682747fa3e57d4
 
     steps:
       - uses: actions/checkout@v2
@@ -158,6 +161,18 @@ jobs:
             echo "KVXOPT_LAPACK_LIB=libopenblas" >> $GITHUB_ENV
             echo "KVXOPT_BLAS_LIB=libopenblas" >> $GITHUB_ENV
       
+      - name: Get FFTW
+        shell: msys2 {0}
+        run: |
+            wget ftp://ftp.fftw.org/pub/fftw/fftw-${FFTW_VERSION}-dll${{matrix.VC_TARGET}}.zip
+            echo "${{matrix.FFTW_SHA256}}  fftw-${FFTW_VERSION}-dll${{ matrix.VC_TARGET }}.zip" > FFTW.sha256
+            shasum -a 256 -c FFTW.sha256
+            mkdir fftw
+            unzip fftw-${FFTW_VERSION}-dll${{matrix.VC_TARGET}}.zip -d fftw/
+            echo "KVXOPT_FFTW_LIB_DIR=${{ github.workspace}}/fftw" >> $GITHUB_ENV
+            echo "KVXOPT_FFTW_INC_DIR=${{ github.workspace}}/fftw" >> $GITHUB_ENV
+            echo "KVXOPT_FFTW_LIB=libfftw3-3" >> $GITHUB_ENV
+
       - name: Get suite-sparse source
         shell: msys2 {0}
         run: |
@@ -189,22 +204,27 @@ jobs:
             echo "KVXOPT_OSQP_LIB_DIR=${{ github.workspace}}\osqp_lib\lib" >> $GITHUB_ENV
             echo "KVXOPT_OSQP_INC_DIR=${{ github.workspace}}\osqp_lib\include\osqp" >> $GITHUB_ENV
 
-      - name: Cofigure Visual Studio 2019
+      - name: Create .lib import files
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
+          cd fftw
+          lib /machine:${{ matrix.ARCH }} /def:libfftw3-3.def
+          dir
         shell: cmd
 
       - name: Build
         run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
           python setup.py build
           copy ${{ github.workspace}}\OpenBLAS\bin\libopenblas.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
           copy ${{ github.workspace}}\osqp_lib\bin\osqp.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
           copy ${{ github.workspace}}\osqp_lib\bin\qdldl.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
+          copy ${{ github.workspace}}\fftw\libfftw3-3.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
           python setup.py bdist_wheel
           pip install .
         shell: cmd
 
       - name: Test
         run: |
-          python -c 'from kvxopt import blas,lapack,cholmod,umfpack,klu,glpk,osqp'
+          python -c 'from kvxopt import blas,lapack,cholmod,umfpack,klu,glpk,osqp,fftw'
           py.test --cov=kvxopt tests/
