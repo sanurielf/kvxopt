@@ -12,6 +12,7 @@ BLAS_LIB_DIR = '/usr/lib'
 # Default names of BLAS and LAPACK libraries
 BLAS_LIB = ['blas']
 LAPACK_LIB = ['lapack']
+FFTW_LIB = ['fftw3'] 
 BLAS_EXTRA_LINK_ARGS = []
 
 # Set environment variable BLAS_NOUNDERSCORES=1 if your BLAS/LAPACK do
@@ -109,8 +110,10 @@ BUILD_GSL = int(os.environ.get("KVXOPT_BUILD_GSL",BUILD_GSL))
 GSL_LIB_DIR = os.environ.get("KVXOPT_GSL_LIB_DIR",GSL_LIB_DIR)
 GSL_INC_DIR = os.environ.get("KVXOPT_GSL_INC_DIR",GSL_INC_DIR)
 BUILD_FFTW = int(os.environ.get("KVXOPT_BUILD_FFTW",BUILD_FFTW))
+FFTW_LIB = os.environ.get("KVXOPT_FFTW_LIB",FFTW_LIB)
 FFTW_LIB_DIR = os.environ.get("KVXOPT_FFTW_LIB_DIR",FFTW_LIB_DIR)
 FFTW_INC_DIR = os.environ.get("KVXOPT_FFTW_INC_DIR",FFTW_INC_DIR)
+if type(FFTW_LIB) is str: FFTW_LIB = FFTW_LIB.strip().split(';')
 BUILD_GLPK = int(os.environ.get("KVXOPT_BUILD_GLPK",BUILD_GLPK))
 GLPK_LIB_DIR = os.environ.get("KVXOPT_GLPK_LIB_DIR",GLPK_LIB_DIR)
 GLPK_INC_DIR = os.environ.get("KVXOPT_GLPK_INC_DIR",GLPK_INC_DIR)
@@ -171,7 +174,7 @@ if BUILD_GSL:
     extmods += [gsl];
 
 if BUILD_FFTW:
-    fftw = Extension('fftw', libraries = ['fftw3'] + BLAS_LIB,
+    fftw = Extension('fftw', libraries = FFTW_LIB + BLAS_LIB,
         include_dirs = [ FFTW_INC_DIR ],
         library_dirs = [ FFTW_LIB_DIR, BLAS_LIB_DIR ],
         define_macros = MACROS + FFTW_MACROS,
