@@ -153,7 +153,7 @@ if platform.architecture() == ('64bit', 'WindowsPE') and not MSVC:
 
 if sys.platform.startswith("win"):
     GSL_MACROS = [('GSL_DLL',''),('WIN32','')]
-    GSL_LIBS = ['gsl']
+    GSL_LIBS = ['gsl', 'gslcblas']
     GSL_EXTRA_LINK_ARGS = []
     FFTW_MACROS = [('FFTW_DLL',''),('FFTW_NO_Complex','')]
 else:

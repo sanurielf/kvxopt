@@ -14,6 +14,7 @@ env:
   GLPK_VERSION: "5.0"
   GLPK_SHA256: 4a1013eebb50f728fc601bdd833b0b2870333c3b3e5a816eeba921d95bec6f15
   OSQP_VERSION: 0.6.2
+  GSL_VERSION: "f8e56946ce337a5a3f3229821faaf52607842874"
 
 jobs:
   Build_common_libs:
@@ -54,10 +55,12 @@ jobs:
             cd osqp
             git checkout v${{ env.OSQP_VERSION }}
 
-      - name: Cofigure Visual Studio 2019
+      - name: Get GSL
+        shell: msys2 {0}
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
-        shell: cmd
+            git clone --recursive https://github.com/ampl/gsl.git
+            cd gsl
+            git checkout ${GSL_VERSION}
 
       - name: Compile GLPK
         run: |
@@ -91,13 +94,28 @@ jobs:
           name: osqp-${{ matrix.ARCH }}
           path: osqp/build/dist/*
 
+      - name: Compile GSL
+        run: |
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
+            cd gsl
+            mkdir build
+            cd build
+            cmake -G "Visual Studio 16 2019" -A ${{ matrix.CMAKE_TARGET }} -DGSL_INSTALL_MULTI_CONFIG=ON -DBUILD_SHARED_LIBS=ON -DMSVC_RUNTIME_DYNAMIC=ON -DCMAKE_INSTALL_PREFIX=dist ..
+            cmake --build . --target install
+        shell: cmd
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: gsl-${{ matrix.ARCH }}
+          path: gsl/build/dist/*
+
 
   build:
     needs: Build_common_libs
 
     runs-on: windows-latest
     env:
-      KVXOPT_BUILD_GSL: 0
+      KVXOPT_BUILD_GSL: 1
       KVXOPT_BUILD_FFTW: 1
       KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_DSDP: 0
@@ -167,10 +185,10 @@ jobs:
             wget ftp://ftp.fftw.org/pub/fftw/fftw-${FFTW_VERSION}-dll${{matrix.VC_TARGET}}.zip
             echo "${{matrix.FFTW_SHA256}}  fftw-${FFTW_VERSION}-dll${{ matrix.VC_TARGET }}.zip" > FFTW.sha256
             shasum -a 256 -c FFTW.sha256
-            mkdir fftw
-            unzip fftw-${FFTW_VERSION}-dll${{matrix.VC_TARGET}}.zip -d fftw/
-            echo "KVXOPT_FFTW_LIB_DIR=${{ github.workspace}}/fftw" >> $GITHUB_ENV
-            echo "KVXOPT_FFTW_INC_DIR=${{ github.workspace}}/fftw" >> $GITHUB_ENV
+            mkdir fftw_lib
+            unzip fftw-${FFTW_VERSION}-dll${{matrix.VC_TARGET}}.zip -d fftw_lib/
+            echo "KVXOPT_FFTW_LIB_DIR=${{ github.workspace}}/fftw_lib" >> $GITHUB_ENV
+            echo "KVXOPT_FFTW_INC_DIR=${{ github.workspace}}/fftw_lib" >> $GITHUB_ENV
             echo "KVXOPT_FFTW_LIB=libfftw3-3" >> $GITHUB_ENV
 
       - name: Get suite-sparse source
@@ -207,10 +225,20 @@ jobs:
       - name: Create .lib import files
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
-          cd fftw
+          cd fftw_lib
           lib /machine:${{ matrix.ARCH }} /def:libfftw3-3.def
-          dir
         shell: cmd
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: gsl-${{ matrix.ARCH }}
+          path: gsl_lib
+
+      - name: Set GSL path
+        shell: msys2 {0}
+        run: |
+            echo "KVXOPT_GSL_LIB_DIR=${{ github.workspace}}\gsl_lib\lib\Debug" >> $GITHUB_ENV
+            echo "KVXOPT_GSL_INC_DIR=${{ github.workspace}}\gsl_lib\include" >> $GITHUB_ENV
 
       - name: Build
         run: |
@@ -219,12 +247,14 @@ jobs:
           copy ${{ github.workspace}}\OpenBLAS\bin\libopenblas.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
           copy ${{ github.workspace}}\osqp_lib\bin\osqp.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
           copy ${{ github.workspace}}\osqp_lib\bin\qdldl.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
-          copy ${{ github.workspace}}\fftw\libfftw3-3.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
+          copy ${{ github.workspace}}\gsl_lib\bin\Debug\gsl.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
+          copy ${{ github.workspace}}\gsl_lib\bin\Debug\gslcblas.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
+          copy ${{ github.workspace}}\fftw_lib\libfftw3-3.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
           python setup.py bdist_wheel
           pip install .
         shell: cmd
 
       - name: Test
         run: |
-          python -c 'from kvxopt import blas,lapack,cholmod,umfpack,klu,glpk,osqp,fftw'
+          python -c 'from kvxopt import blas,lapack,cholmod,umfpack,klu,glpk,osqp,fftw,gsl'
           py.test --cov=kvxopt tests/
