@@ -48,7 +48,7 @@ GLPK_LIB_DIR = '/usr/lib'
 GLPK_INC_DIR = '/usr/include'
 
 # Set to 1 if you are installing the osqp module.
-BUILD_OSQP = 0
+BUILD_OSQP = 1
 
 # Directory containing libglpk (used only when BUILD_OSQP = 1).
 OSQP_LIB_DIR = '/usr/local/lib'
