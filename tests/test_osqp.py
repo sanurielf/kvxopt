@@ -73,5 +73,26 @@ class TestOSQP(unittest.TestCase):
         self.assertAlmostEqual(sol1['primal objective'], obj, 5)
 
 
+    # Test taken from:
+    # https://github.com/oxfordcontrol/osqp-python/blob/master/module/tests/basic_test.py
+    def test_basic_OSQP_form(self):
+        from kvxopt import solvers, osqp, spmatrix, sparse, matrix, spdiag
+
+        P = spdiag([11.0, 0])
+        q = matrix([3.0, 4.0])
+        A = sparse([[-1, 0], [0, -1], [-1, -3], [2, 5], [3, 4]]).T
+        u = matrix([0., 0., -15, 100, 80])
+        l = -1e06 * matrix(1.0, u.size)
+        x = [0, 5]
+        y = [1.66666667, 0., 1.33333333, 0., 0.]
+
+
+        (res, x1, y1) = osqp.solve(q, A, l, u, P)
+        self.assertTrue(res =='solved')
+        self.assertAlmostEqualLists(list(x1), x, 2)
+        self.assertAlmostEqualLists(list(y1), y, 2)
+
+
+
 if __name__ == '__main__':
     unittest.main()
