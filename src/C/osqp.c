@@ -78,8 +78,8 @@ void print_vec2(c_float *v, c_int n, const char *name) {
 }
 
 
-static PyObject *resize_problem(spmatrix *G, matrix *h, spmatrix *A,
-                                matrix *b) {
+static PyObject *resize_problem(spmatrix *P, spmatrix *G, matrix *h,
+                                spmatrix *A, matrix *b) {
 
 
     /*
@@ -91,16 +91,23 @@ static PyObject *resize_problem(spmatrix *G, matrix *h, spmatrix *A,
 
     To OSQP
 
-    minimize     0.5 x' P x + q' x
+    minimize     (1/2) * x' P x + q' x
 
     subject to      l <= A x <= u
 
-
+    P is also transposed
     */
     PyObject *res;
-    spmatrix *Anew;
+    spmatrix *Anew, *Pt = NULL;
     matrix *l, *u;
     int_t k, i, j, m, n, nnz, p;
+
+    /* We transpose the matrix since CVXOPT formulation receives the
+         * matrix in a lower triangular form. OSQP needs it in upper triangular */
+
+    if (P)
+        if (!(Pt = SpMatrix_Trans(P)))
+            return NULL;
 
 
     if (A)
@@ -143,6 +150,8 @@ static PyObject *resize_problem(spmatrix *G, matrix *h, spmatrix *A,
     if (!l || !u) {
         if (p > 0)
             Py_DECREF(Anew);
+        if (Pt)
+            Py_DECREF(Pt);
         return NULL;
     }
 
@@ -154,10 +163,12 @@ static PyObject *resize_problem(spmatrix *G, matrix *h, spmatrix *A,
     for (j = 0, i = SP_NROWS(G); i < m; i++, j++)
         MAT_BUFD(l)[i] = MAT_BUFD(u)[i] = MAT_BUFD(b)[j];
 
-    if (!(res = PyTuple_New(3))) {
+    if (!(res = PyTuple_New(4))) {
         Py_DECREF(Anew);
         Py_DECREF(l);
         Py_DECREF(u);
+        if (Pt)
+            Py_DECREF(Pt);
         return NULL;
     }
 
@@ -170,6 +181,14 @@ static PyObject *resize_problem(spmatrix *G, matrix *h, spmatrix *A,
 
     PyTuple_SET_ITEM(res, 1, (PyObject *) l);
     PyTuple_SET_ITEM(res, 2, (PyObject *) u);
+
+
+    if (Pt)
+        PyTuple_SET_ITEM(res, 3, (PyObject *) Pt);
+    else {
+        Py_INCREF(Py_None);
+        PyTuple_SET_ITEM(res, 3, (PyObject *) Py_None);
+    }
 
 
     return res;
@@ -205,7 +224,7 @@ static PyObject *solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
     data->u = MAT_BUFD(u);
 
 
-    if (P)
+    if (P != NULL && (PyObject *) P != Py_None)
         data->P = csc_matrix(data->n, data->n, SP_NNZ(P), (c_float *) SP_VALD(P),
                              (c_int *)SP_ROW(P), (c_int *)SP_COL(P));
     else {
@@ -241,7 +260,42 @@ static PyObject *solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
         csc_spfree(data->P);
 
 
+    x = Matrix_New(data->n, 1, DOUBLE);
+    z = Matrix_New(data->m, 1, DOUBLE);
 
+    if (!x || !z) {
+        Py_XDECREF(x);
+        Py_XDECREF(z);
+
+        c_free(data);
+        c_free(settings);
+        osqp_cleanup(work);
+        return NULL;
+    }
+
+
+    if (work->info->status_val == OSQP_SOLVED ||
+            work->info->status_val == OSQP_SOLVED_INACCURATE) {
+
+        /* Return primal solution and Lagrange multiplier associated to 𝑙<=𝐴𝑥<=𝑢 */
+        memcpy(MAT_BUFD(x), (double *) work->solution->x, data->n * sizeof(double));
+        memcpy(MAT_BUFD(z), (double *) work->solution->y, data->m * sizeof(double));
+
+
+    }
+    else if (work->info->status_val == OSQP_PRIMAL_INFEASIBLE ||
+             work->info->status_val == OSQP_PRIMAL_INFEASIBLE_INACCURATE) {
+        /* Return the primal infeasibility certificate */
+        memcpy(MAT_BUFD(z), (double *) work->delta_y, data->m * sizeof(double));
+
+
+    }
+    else if (work->info->status_val == OSQP_DUAL_INFEASIBLE ||
+             work->info->status_val == OSQP_DUAL_INFEASIBLE_INACCURATE) {
+        /* Return the dual infeasibility certificate */
+        memcpy(MAT_BUFD(x), (double *) work->delta_x, data->n * sizeof(double));
+
+    }
 
     if (!(res = PyTuple_New(3))) {
 
@@ -251,62 +305,16 @@ static PyObject *solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
         return NULL;
     }
 
-
-    x = Matrix_New(data->n, 1, DOUBLE);
-    z = Matrix_New(data->m, 1, DOUBLE);
-
-    if (!x || !z) {
-        Py_XDECREF(x);
-        Py_XDECREF(z);
-        Py_XDECREF(res);
-
-        c_free(data);
-        c_free(settings);
-        osqp_cleanup(work);
-        return NULL;
-    }
-
-
-
     PyTuple_SET_ITEM(res, 0, (PyObject *) PYSTRING_FROMSTRING(work->info->status));
-
-
-
-    if (work->info->status_val == OSQP_SOLVED ||
-            work->info->status_val == OSQP_SOLVED_INACCURATE) {
-
-        memcpy(MAT_BUFD(x), (double *) work->solution->x, data->n * sizeof(double));
-        memcpy(MAT_BUFD(z), (double *) work->solution->y, data->m * sizeof(double));
-
-        //if (p > 0)
-        //    memcpy(MAT_BUFD(y), (double *) &work->solution->y[m],
-        //           p * sizeof(double));
-
-    }
-    else if (work->info->status_val == OSQP_PRIMAL_INFEASIBLE ||
-             work->info->status_val == OSQP_PRIMAL_INFEASIBLE_INACCURATE) {
-        /* Return the primal certificate */
-        memcpy(MAT_BUFD(z), (double *) work->delta_y, data->m * sizeof(double));
-        //if (p > 0)
-        //    memcpy(MAT_BUFD(y), (double *) &work->delta_y[m], p * sizeof(double));
-
-    }
-    else if (work->info->status_val == OSQP_DUAL_INFEASIBLE ||
-             work->info->status_val == OSQP_DUAL_INFEASIBLE_INACCURATE) {
-
-        memcpy(MAT_BUFD(x), (double *) work->delta_x, data->n * sizeof(double));
-
-    }
-
-
     PyTuple_SET_ITEM(res, 1, (PyObject *) x);
     PyTuple_SET_ITEM(res, 2, (PyObject *) z);
 
 
     c_free(data);
     c_free(settings);
-
     osqp_cleanup(work);
+
+
     return res;
 
 }
@@ -321,10 +329,10 @@ static PyObject *solve(PyObject *self, PyObject *args, PyObject *kwargs) {
     PyObject *opts = NULL, *res = NULL;
     int_t m, n;
 
-    char *kwlist[] = {"q", "A", "u", "l", "P", "options", NULL};
+    char *kwlist[] = {"q", "A", "l", "u", "P", "options", NULL};
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOOO|OO", kwlist, &q, &A,
-                                     &u, &l, &P, &opts)) return NULL;
+                                     &l, &u, &P, &opts)) return NULL;
 
     if (!(SpMatrix_Check(A) && SP_ID(A) == DOUBLE)) {
         PyErr_SetString(PyExc_TypeError, "A must be a sparse 'd' matrix");
@@ -470,33 +478,25 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs) {
             PyErr_SetString(PyExc_ValueError, "incompatible dimensions");
             return NULL;
         }
-        /* We transpose the matrix since CVXOPT formulation receives the
-         * matrix in a lower triangular form. OSQP needs it in upper triangular */
-        Pt = SpMatrix_Trans(P);
 
     }
 
 
-
-    if (!(resized = resize_problem(G, h, A, b))) {
-        if (P)
-            Py_DECREF(Pt);
+    if (!(resized = resize_problem(P, G, h, A, b)))
         return PyErr_NoMemory();
-    }
+    
 
     Anew = (spmatrix *) PyTuple_GET_ITEM(resized, 0);
     l = (matrix *) PyTuple_GET_ITEM(resized, 1);
     u = (matrix *) PyTuple_GET_ITEM(resized, 2);
+    Pt = (spmatrix *) PyTuple_GET_ITEM(resized, 3);
 
 
-    res_osqp = solve_problem(P ? Pt : NULL, q, p > 0 ? Anew : G, l, u);
+    res_osqp = solve_problem(Pt, q, p > 0 ? Anew : G, l, u);
 
 
     Py_DECREF(resized);
 
-
-    if (P)
-        Py_DECREF(Pt);
 
     if (!res_osqp)
         return PyErr_NoMemory();
