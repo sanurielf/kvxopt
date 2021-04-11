@@ -4201,7 +4201,7 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
 
         b is a p x 1 dense 'd' matrix or None.
 
-        solver is None or 'mosek'.
+        solver is None, 'mosek' or 'osqp'.
 
         The default values for G, h, A and b are empty matrices with
         zero rows.
@@ -4369,7 +4369,7 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
                 from kvxopt import msk
                 import mosek
             except ImportError: raise ValueError("invalid option "\
-                "(solver='mosek'): cvxopt.msk is not installed")
+                "(solver='mosek'): kvxopt.msk is not installed")
 
             opts = options.get('mosek',None)
             if opts:
@@ -4380,7 +4380,7 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
             try:
                 from kvxopt import osqp
             except ImportError: raise ValueError("invalid option "\
-                "(solver='mosek'): cvxopt.msk is not installed")
+                "(solver='osqp'): kvxopt.osqp is not installed")
 
 
             if isinstance(G, matrix):
@@ -4391,6 +4391,7 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
                 A = sparse(A)
 
             opts = options.get('osqp',None)
+            print(A)
             if opts:
                 solsta, x, z, y = osqp.qp(q, G, h, A, b, P, options=opts)
             else:
