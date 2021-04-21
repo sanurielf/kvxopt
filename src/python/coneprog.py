@@ -2808,7 +2808,7 @@ def lp(c, G, h, A = None, b = None, kktsolver = None, solver = None, primalstart
         if solver == 'glpk':
             try: from kvxopt import glpk
             except ImportError: raise ValueError("invalid option "\
-                "(solver = 'glpk'): cvxopt.glpk is not installed")
+                "(solver = 'glpk'): kvxopt.glpk is not installed")
             opts = options.get('glpk',None)
             if opts:
                 status, x, z, y = glpk.lp(c, G, h, A, b, options = opts)
@@ -2818,18 +2818,15 @@ def lp(c, G, h, A = None, b = None, kktsolver = None, solver = None, primalstart
         elif solver == 'osqp':
             try: from kvxopt import osqp
             except ImportError: raise ValueError("invalid option "\
-                "(solver = 'osqp'): cvxopt.osqp is not installed")
-            opts = options.get('osqp',None)
+                "(solver = 'osqp'): kvxopt.osqp is not installed")
+            opts = options.get('osqp', None)
 
             if isinstance(G, matrix):
                 G = sparse(G)
             if isinstance(A, matrix):
                 A = sparse(A)
 
-            if opts:
-                status, x, z, y = osqp.qp(c, G, h, A, b, options = opts)
-            else:
-                status, x, z, y = osqp.qp(c, G, h, A, b)
+            status, x, z, y = osqp.qp(c, G, h, A, b, options = opts)
 
             if status == 'solved':
                 status = 'optimal'
@@ -4391,11 +4388,7 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
                 A = sparse(A)
 
             opts = options.get('osqp',None)
-            print(A)
-            if opts:
-                solsta, x, z, y = osqp.qp(q, G, h, A, b, P, options=opts)
-            else:
-                solsta, x, z, y = osqp.qp(q, G, h, A, b, P)
+            solsta, x, z, y = osqp.qp(q, G, h, A, b, P, options=opts)
 
 
         n = q.size[0]
