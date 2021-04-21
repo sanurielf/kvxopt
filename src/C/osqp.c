@@ -23,6 +23,35 @@
 #include "cvxopt.h"
 #include "misc.h"
 
+#define xstr(s) str(s)
+#define str(s) #s
+
+#define IF_PARSE_FLOAT_OPT(opt_name, key, value)                \
+    if (!PYSTRING_COMPARE(key, str(opt_name))){                 \
+        if (PyFloat_Check(value)){                              \
+            settings->opt_name = PyFloat_AsDouble(value);       \
+        }                                                       \
+        else if (PYINT_CHECK(value)){                           \
+            settings->opt_name = PYINT_AS_LONG(value);          \
+        }                                                       \
+        else {                                                  \
+            PyErr_WarnEx(NULL, "Invalid value for parameter:"   \
+                         str(opt_name), 1);                     \
+        }                                                       \
+    }                                                           \
+
+
+#define IF_PARSE_INT_OPT(opt_name, key, value)                  \
+    if (!PYSTRING_COMPARE(key, str(opt_name))){                 \
+        if (PYINT_CHECK(value)){                                \
+            settings->opt_name = PYINT_AS_LONG(value);          \
+        }                                                       \
+        else {                                                  \
+            PyErr_WarnEx(NULL, "Invalid value for parameter:"   \
+                         str(opt_name), 1);                     \
+        }                                                       \
+    }                                                           \
+
 
 PyDoc_STRVAR(osqp__doc__,
              "Interface to OSQP LP and QP solver");
@@ -196,11 +225,18 @@ static PyObject *resize_problem(spmatrix *P, spmatrix *G, matrix *h,
 }
 
 static PyObject *solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
-                               matrix *u) {
+                               matrix *u, PyObject *opts) {
+    /* Solve a QP/LP problem in the following form:
 
-    PyObject *res;
+    minimize     (1/2) * x' P x + q' x
+
+    subject to      l <= A x <= u
+    */
+
+    PyObject *res, *key, *value;
     matrix *x, *z;
-    int_t i, exitflag;
+    int_t i, exitflag, pos = 0;
+    char msg[100];
 
     OSQPWorkspace *work;
     OSQPSettings  *settings;
@@ -210,12 +246,61 @@ static PyObject *solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
     if (!(settings = (OSQPSettings *)c_malloc(sizeof(OSQPSettings))))
         return NULL;
 
-
     if (!(data = (OSQPData *)c_malloc(sizeof(OSQPData)))) {
         c_free(settings);
         return NULL;
     }
 
+    /* Here we detect if any user defined options are available through
+     * the module options or a dictionary. Otherwise, use standard
+     * settings
+     */
+    if (!(opts && PyDict_Check(opts)))
+        opts = PyObject_GetAttrString(osqp_module, "options");
+    if (!opts || !PyDict_Check(opts)){
+        c_free(data);
+        c_free(settings);
+        PyErr_SetString(PyExc_AttributeError,
+            "missing osqp.options dictionary");
+        return NULL;
+    }
+
+    osqp_set_default_settings(settings);
+
+    while (PyDict_Next(opts, &pos, &key, &value)) {
+        if (PYSTRING_CHECK(key)){
+            //printf("On parameter [%s]\n", PyStr_AsString(key));
+            IF_PARSE_INT_OPT(scaling, key, value)
+            else IF_PARSE_INT_OPT(adaptive_rho, key, value)
+            else IF_PARSE_INT_OPT(adaptive_rho_interval, key, value)
+            else IF_PARSE_FLOAT_OPT(adaptive_rho_tolerance, key, value)
+            else IF_PARSE_FLOAT_OPT(adaptive_rho_fraction, key, value)
+            else IF_PARSE_FLOAT_OPT(rho, key, value)
+            else IF_PARSE_FLOAT_OPT(sigma, key, value)
+            else IF_PARSE_INT_OPT(max_iter, key, value)
+            else IF_PARSE_FLOAT_OPT(eps_abs, key, value)
+            else IF_PARSE_FLOAT_OPT(eps_rel, key, value)
+            else IF_PARSE_FLOAT_OPT(eps_prim_inf, key, value)
+            else IF_PARSE_FLOAT_OPT(eps_dual_inf, key, value)
+            else IF_PARSE_FLOAT_OPT(alpha, key, value)
+            else IF_PARSE_FLOAT_OPT(delta, key, value)
+            else IF_PARSE_INT_OPT(linsys_solver, key, value)
+            else IF_PARSE_INT_OPT(polish, key, value)
+            else IF_PARSE_INT_OPT(polish_refine_iter, key, value)
+            else IF_PARSE_INT_OPT(verbose, key, value)
+            else IF_PARSE_INT_OPT(scaled_termination, key, value)
+            else IF_PARSE_INT_OPT(check_termination, key, value)
+            else IF_PARSE_INT_OPT(warm_start, key, value)
+            else IF_PARSE_FLOAT_OPT(time_limit, key, value)
+            else{
+                strcpy(msg, "Invalid parameter name: ");
+                strcat(msg, PyStr_AsString(key));
+                PyErr_WarnEx(NULL, msg, 1);
+            }
+        }
+    }
+    
+    
     data->m = SP_NROWS(A);
     data->n = SP_NCOLS(A);
     data->A = csc_matrix(data->m, data->n, SP_NNZ(A), (c_float *) SP_VALD(A),
@@ -235,9 +320,6 @@ static PyObject *solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
 
     data->q = MAT_BUFD(q);
 
-    osqp_set_default_settings(settings);
-    settings->verbose = 1;
-
 
     //print_csc_matrix2(data->P, "P");
     //print_vec2(data->q, data->n, "q");
@@ -248,6 +330,8 @@ static PyObject *solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
 
     // Setup workspace
     exitflag = osqp_setup(&work, data, settings);
+
+    //if (exitflag) 
 
     // Solve Problem
     Py_BEGIN_ALLOW_THREADS;
@@ -380,7 +464,7 @@ static PyObject *solve(PyObject *self, PyObject *args, PyObject *kwargs) {
     }
 
 
-    res = solve_problem(P, q, A, l, u);
+    res = solve_problem(P, q, A, l, u, opts);
 
     if (!res)
         return PyErr_NoMemory();
@@ -492,7 +576,7 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs) {
     Pt = (spmatrix *) PyTuple_GET_ITEM(resized, 3);
 
 
-    res_osqp = solve_problem(Pt, q, p > 0 ? Anew : G, l, u);
+    res_osqp = solve_problem(Pt, q, p > 0 ? Anew : G, l, u, opts);
 
 
     Py_DECREF(resized);

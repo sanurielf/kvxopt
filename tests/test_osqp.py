@@ -11,6 +11,15 @@ class TestOSQP(unittest.TestCase):
             A = sparse(matrix([1.0,1.0],(1,2)))
             b = matrix(1.0)
             self._prob_data = (c,G,h,A,b)
+            self.opts = {'verbose': 0,
+                         'eps_abs': 1.0e-09,
+                         'eps_rel': 1.0e-09,
+                         'max_iter': 2500,
+                         'rho': 0.1,
+                         'adaptive_rho': False,
+                         'polish': False,
+                         'check_termination': 1,
+                         'warm_start': True}
 
         except ImportError:
             self.skipTest("OSQP not available")
@@ -26,7 +35,7 @@ class TestOSQP(unittest.TestCase):
         c,G,h,A,b = self._prob_data
         sol1 = solvers.lp(c,G,h)
         self.assertTrue(sol1['status']=='optimal')
-        sol2 = solvers.lp(c,G,h,solver='osqp')
+        sol2 = solvers.lp(c,G,h, solver='osqp', options={'osqp': self.opts})
         self.assertTrue(sol2['status']=='optimal')
 
         self.assertAlmostEqualLists(list(sol1['x']), list(sol2['x']), 2)
@@ -35,17 +44,17 @@ class TestOSQP(unittest.TestCase):
 
         sol3 = solvers.lp(c,G,h,A,b)
         self.assertTrue(sol3['status']=='optimal')
-        sol4 = solvers.lp(c,G,h,A,b,solver='osqp')
+        sol4 = solvers.lp(c,G,h,A,b,solver='osqp', options={'osqp': self.opts})
         self.assertTrue(sol4['status']=='optimal')
         self.assertAlmostEqualLists(list(sol3['x']), list(sol4['x']), 2)
         self.assertAlmostEqualLists(list(sol3['z']), list(sol4['z']), 2)
         self.assertAlmostEqualLists(list(sol3['y']), list(sol4['y']), 2)
 
-        sol5 = osqp.qp(c,G,h)
+        sol5 = osqp.qp(c,G,h, options=self.opts)
         self.assertTrue(sol5[0]=='solved')
-        sol6 = osqp.qp(c,G,h,A,b)
+        sol6 = osqp.qp(c,G,h,A,b, options=self.opts)
         self.assertTrue(sol6[0]=='solved')
-        sol7 = osqp.qp(c,G,h,None,None)
+        sol7 = osqp.qp(c,G,h,None,None, options=self.opts)
         self.assertTrue(sol7[0]=='solved')
 
 
@@ -64,7 +73,7 @@ class TestOSQP(unittest.TestCase):
         z = [0, 0, 0.2, 2.9, 0, 0]
         obj = 1.88
 
-        sol1 = solvers.qp(P, q, G, h, solver = 'osqp')
+        sol1 = solvers.qp(P, q, G, h, solver = 'osqp', options={'osqp': self.opts})
         self.assertTrue(sol1['status']=='optimal')
 
         self.assertAlmostEqualLists(list(sol1['x']), x, 2)
@@ -87,7 +96,7 @@ class TestOSQP(unittest.TestCase):
         y = [1.66666667, 0., 1.33333333, 0., 0.]
 
 
-        (res, x1, y1) = osqp.solve(q, A, l, u, P)
+        (res, x1, y1) = osqp.solve(q, A, l, u, P, options=self.opts)
         self.assertTrue(res =='solved')
         self.assertAlmostEqualLists(list(x1), x, 2)
         self.assertAlmostEqualLists(list(y1), y, 2)
