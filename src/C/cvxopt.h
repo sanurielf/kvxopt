@@ -74,12 +74,14 @@ typedef struct {
 #define PYSTRING_FROMSTRING(str) PyUnicode_FromString(str)
 #define PYSTRING_CHECK(a) PyUnicode_Check(a)
 #define PYSTRING_COMPARE(a,b) PyUnicode_CompareWithASCIIString(a, b)
+#define PyStr_AsString(obj) PyUnicode_AsUTF8(obj)
 #else
 #define PYINT_CHECK(value) PyInt_Check(value)
 #define PYINT_AS_LONG(value) PyInt_AS_LONG(value)
 #define PYSTRING_FROMSTRING(str) PyString_FromString(str)
 #define PYSTRING_CHECK(a) PyString_Check(a)
 #define PYSTRING_COMPARE(a,b) strcmp(PyString_AsString(a), b)
+#define PyStr_AsString(obj) PyString_AsString(obj)
 #endif
 
 
