@@ -14,10 +14,10 @@ jobs:
       KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_DSDP: 1
       KVXOPT_BUILD_OSQP: 1
-      OSQP_VERSION:  0.6.2
       SUITESPARSE_VERSION: 5.9.0
       SUITESPARSE_SHA256: 7bdd4811f1cf0767c5fdb5e435817fdadee50b0acdb598f4882ae7b8291a7f24
-      OSQP_SHA256: 26fe91406bca93b7f105245920bfb1851e3213d4b18b30465d745a0985a96594
+      OSQP_VERSION:  0.6.2
+      OSQP_SHA256: 0a7ade2fa19f13e13bc12f6ea0046ef764049023efb4997a4e72a76534f623ec
 
     strategy:
       fail-fast: false
@@ -55,15 +55,20 @@ jobs:
             echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
         if: ${{ matrix.suite-sparse == 'src_suitesparse' }}
 
-      - name: Get OSQP binaries
+      - name: Get OSQP source and compile library
         run: |
-            wget https://bintray.com/bstellato/generic/download_file?file_path=OSQP%2F${OSQP_VERSION}%2Fosqp-${OSQP_VERSION}-linux64.tar.gz -O osqp-${OSQP_VERSION}-linux64.tar.gz
-            echo "${OSQP_SHA256}  osqp-${OSQP_VERSION}-linux64.tar.gz" > OSQP.sha256
+            wget https://github.com/osqp/osqp/releases/download/v${OSQP_VERSION}/complete_sources.tar.gz -O osqp-${OSQP_VERSION}.tar.gz
+            echo "${OSQP_SHA256}  osqp-${OSQP_VERSION}.tar.gz" > OSQP.sha256
             shasum -a 256 -c OSQP.sha256
-            tar -xf osqp-${OSQP_VERSION}-linux64.tar.gz
-            echo "KVXOPT_OSQP_LIB_DIR=${{ github.workspace}}/osqp-${{ env.OSQP_VERSION }}-linux64/lib" >> $GITHUB_ENV
-            echo "KVXOPT_OSQP_INC_DIR=${{ github.workspace}}/osqp-${{ env.OSQP_VERSION }}-linux64/include" >> $GITHUB_ENV
-            echo "LD_LIBRARY_PATH=${{ github.workspace}}/osqp-${{ env.OSQP_VERSION }}-linux64/lib" >> $GITHUB_ENV
+            tar -xf osqp-${OSQP_VERSION}.tar.gz
+            cd osqp
+            mkdir build
+            cd build
+            cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
+            sudo cmake --build . --target install
+            echo "KVXOPT_OSQP_LIB_DIR=/usr/local/lib" >> $GITHUB_ENV
+            echo "KVXOPT_OSQP_INC_DIR=/usr/local/include/osqp" >> $GITHUB_ENV
+            echo "LD_LIBRARY_PATH=/usr/local/lib" >> $GITHUB_ENV
 
       - name: Install
         run: |
