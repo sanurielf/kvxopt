@@ -97,9 +97,7 @@ static PyObject* linsolve(PyObject *self, PyObject *args,
 {
     spmatrix *A;
     matrix *B;
-#if PY_MAJOR_VERSION >= 3
     int trans_ = 'N';
-#endif
     char trans = 'N';
     int oB = 0, nrhs = -1, ldB = 0;
     int_t n;
@@ -110,14 +108,10 @@ static PyObject* linsolve(PyObject *self, PyObject *args,
                       NULL
                      };
 
-#if PY_MAJOR_VERSION >= 3
     if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OO|Ciii", kwlist,
                                      &A, &B, &trans_, &nrhs, &ldB, &oB)) return NULL;
     trans = (char) trans_;
-#else
-    if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OO|ciii", kwlist,
-                                     &A, &B, &trans, &nrhs, &ldB, &oB)) return NULL;
-#endif
+
 
     if (!SpMatrix_Check(A) || SP_NROWS(A) != SP_NCOLS(A))
         PY_ERR_TYPE("A must be a square sparse matrix");
@@ -596,11 +590,7 @@ static PyObject* solve(PyObject *self, PyObject *args, PyObject *kwrds)
     spmatrix *A;
     PyObject *F, *Fs;
     matrix *B;
-#if PY_MAJOR_VERSION >= 3
     int trans_ = 'N';
-#endif
-
-
     char trans = 'N';
     int oB = 0, n, ldB = 0, nrhs = -1;
     char *kwlist[] = {"A", "Fs", "F", "B", "trans", "nrhs", "ldB", "offsetB",
@@ -609,14 +599,10 @@ static PyObject* solve(PyObject *self, PyObject *args, PyObject *kwrds)
     KLU(common) Common, CommonFree;
 
 
-#if PY_MAJOR_VERSION >= 3
     if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OOOO|Ciii", kwlist,
                                      &A, &Fs, &F, &B, &trans_, &nrhs, &ldB, &oB)) return NULL;
     trans = (char) trans_;
-#else
-    if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OOOO|ciii", kwlist,
-                                     &A, &Fs, &F, &B, &trans, &nrhs, &ldB, &oB)) return NULL;
-#endif
+
 
     if (!SpMatrix_Check(A) || SP_NROWS(A) != SP_NCOLS(A))
         PY_ERR_TYPE("A must a square sparse matrix");
@@ -847,7 +833,6 @@ static PyMethodDef klu_functions[] = {
     {NULL}  /* Sentinel */
 };
 
-#if PY_MAJOR_VERSION >= 3
 
 static PyModuleDef klu_module = {
     PyModuleDef_HEAD_INIT,
@@ -867,12 +852,4 @@ PyMODINIT_FUNC PyInit_klu(void)
     return m;
 }
 
-#else
 
-PyMODINIT_FUNC initklu(void)
-{
-    PyObject *m;
-    m = Py_InitModule3("kvxopt.klu", klu_functions, klu__doc__);
-    if (import_kvxopt() < 0) return;
-}
-#endif

@@ -100,9 +100,7 @@ static PyObject* linsolve(PyObject *self, PyObject *args,
 {
     spmatrix *A;
     matrix *B;
-#if PY_MAJOR_VERSION >= 3
     int trans_ = 'N';
-#endif
     char trans='N';
     double info[UMFPACK_INFO];
     int oB=0, n, nrhs=-1, ldB=0, k;
@@ -110,14 +108,9 @@ static PyObject* linsolve(PyObject *self, PyObject *args,
     char *kwlist[] = {"A", "B", "trans", "nrhs", "ldB", "offsetB",
         NULL};
 
-#if PY_MAJOR_VERSION >= 3
     if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OO|Ciii", kwlist,
         &A, &B, &trans_, &nrhs, &ldB, &oB)) return NULL;
     trans = (char) trans_;
-#else
-    if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OO|ciii", kwlist,
-        &A, &B, &trans, &nrhs, &ldB, &oB)) return NULL;
-#endif
 
     if (!SpMatrix_Check(A) || SP_NROWS(A) != SP_NCOLS(A))
         PY_ERR_TYPE("A must be a square sparse matrix");
@@ -387,24 +380,16 @@ static PyObject* get_numeric(PyObject *self, PyObject *args, PyObject *kwrds)
     spmatrix *A, *L, *U, *P, *Q, *R;
     PyObject *F;
     void *numeric;
-#if PY_MAJOR_VERSION >= 3
     int trans_ = 'N';
-#endif
     char trans='N';
     int_t i, n_row, n_col, nn, n_inner, lnz, unz, status, ignore1, ignore2, ignore3, 
           *Ltp, *Ltj, *Up, *Ui, *Pt, *Qt, *Rp, *Ri, do_recip;
     double *Ltx, *Ux, *Rs;
     char *kwlist[] = {"A", "F", "trans", NULL};
 
-
-#if PY_MAJOR_VERSION >= 3
     if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OO|C", kwlist,
         &A, &F, &trans_)) return NULL;
     trans = (char) trans_;
-#else
-    if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OO|c", kwlist,
-        &A, &F, &trans)) return NULL;
-#endif
 
     if (!SpMatrix_Check(A)) PY_ERR_TYPE("A must be a sparse matrix");
     
@@ -592,23 +577,16 @@ static PyObject* solve(PyObject *self, PyObject *args, PyObject *kwrds)
     spmatrix *A;
     PyObject *F;
     matrix *B;
-#if PY_MAJOR_VERSION >= 3
     int trans_ = 'N';
-#endif
     char trans='N';
     double *x, info[UMFPACK_INFO];
     int oB=0, n, ldB=0, nrhs=-1, k;
     char *kwlist[] = {"A", "F", "B", "trans", "nrhs", "ldB", "offsetB",
         NULL};
 
-#if PY_MAJOR_VERSION >= 3
     if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OOO|Ciii", kwlist,
         &A, &F, &B, &trans_, &nrhs, &ldB, &oB)) return NULL;
     trans = (char) trans_;
-#else
-    if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OOO|ciii", kwlist,
-        &A, &F, &B, &trans, &nrhs, &ldB, &oB)) return NULL;
-#endif
 
     if (!SpMatrix_Check(A) || SP_NROWS(A) != SP_NCOLS(A))
         PY_ERR_TYPE("A must a square sparse matrix");
@@ -751,8 +729,6 @@ static PyMethodDef umfpack_functions[] = {
     {NULL}  /* Sentinel */
 };
 
-#if PY_MAJOR_VERSION >= 3
-
 static PyModuleDef umfpack_module = {
     PyModuleDef_HEAD_INIT,
     "umfpack",
@@ -769,13 +745,3 @@ PyMODINIT_FUNC PyInit_umfpack(void)
   if (import_kvxopt() < 0) return NULL;
   return m;
 }
-
-#else
-
-PyMODINIT_FUNC initumfpack(void)
-{
-  PyObject *m;
-  m = Py_InitModule3("kvxopt.umfpack", umfpack_functions, umfpack__doc__);
-  if (import_kvxopt() < 0) return;
-}
-#endif
