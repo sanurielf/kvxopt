@@ -38,20 +38,6 @@ PyDoc_STRVAR(glpk__doc__,
 
 static PyObject *glpk_module;
 
-#if PY_MAJOR_VERSION >= 3
-#define PYINT_CHECK(value) PyLong_Check(value)
-#define PYINT_AS_LONG(value) PyLong_AS_LONG(value)
-#define PYSTRING_FROMSTRING(str) PyUnicode_FromString(str)
-#define PYSTRING_CHECK(a) PyUnicode_Check(a)
-#define PYSTRING_COMPARE(a,b) PyUnicode_CompareWithASCIIString(a, b)
-#else
-#define PYINT_CHECK(value) PyInt_Check(value)
-#define PYINT_AS_LONG(value) PyInt_AS_LONG(value)
-#define PYSTRING_FROMSTRING(str) PyString_FromString(str)
-#define PYSTRING_CHECK(a) PyString_Check(a)
-#define PYSTRING_COMPARE(a,b) strcmp(PyString_AsString(a), b)
-#endif
-
 
 static char doc_simplex[] =
     "Solves a linear program using GLPK.\n\n"
@@ -222,16 +208,16 @@ static PyObject *simplex(PyObject *self, PyObject *args, PyObject *kwrds)
     glp_init_smcp(&smcp);
 
     while (PyDict_Next(param, &pos, &key, &value))
-        if (PYSTRING_CHECK(key)){
-            if (!PYSTRING_COMPARE(key, "msg_lev"))
-                if (PYSTRING_CHECK(value)){
-                    if (!PYSTRING_COMPARE(value, "GLP_MSG_OFF"))
+        if (PyUnicode_Check(key)){
+            if (!PyUnicode_CompareWithASCIIString(key, "msg_lev"))
+                if (PyUnicode_Check(value)){
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_MSG_OFF"))
                         smcp.msg_lev = GLP_MSG_OFF;
-                    else if (!PYSTRING_COMPARE(value, "GLP_MSG_ERR"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_MSG_ERR"))
                         smcp.msg_lev = GLP_MSG_ERR;
-                    else if (!PYSTRING_COMPARE(value, "GLP_MSG_ON"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_MSG_ON"))
                         smcp.msg_lev = GLP_MSG_ON;
-                    else if (!PYSTRING_COMPARE(value, "GLP_MSG_ALL"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_MSG_ALL"))
                         smcp.msg_lev = GLP_MSG_ALL;
                     else
                         PyErr_WarnEx(NULL, "replacing "
@@ -241,15 +227,15 @@ static PyObject *simplex(PyObject *self, PyObject *args, PyObject *kwrds)
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['msg_lev'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "meth"))
-                if (PYSTRING_CHECK(value)){
-                    if (!PYSTRING_COMPARE(value, "GLP_PRIMAL"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "meth"))
+                if (PyUnicode_Check(value)){
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_PRIMAL"))
                         smcp.meth = GLP_PRIMAL;
 #if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35) || GLP_MAJOR_VERSION >= 5
-                    else if (!PYSTRING_COMPARE(value, "GLP_DUAL"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_DUAL"))
                         smcp.meth = GLP_DUAL;
 #endif
-                    else if (!PYSTRING_COMPARE(value, "GLP_DUALP"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_DUALP"))
                         smcp.meth = GLP_DUALP;
                     else
                         PyErr_WarnEx(NULL, "replacing "
@@ -258,11 +244,11 @@ static PyObject *simplex(PyObject *self, PyObject *args, PyObject *kwrds)
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['meth'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "pricing"))
-                if (PYSTRING_CHECK(value)){
-                    if (!PYSTRING_COMPARE(value, "GLP_PT_STD"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "pricing"))
+                if (PyUnicode_Check(value)){
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_PT_STD"))
                         smcp.pricing = GLP_PT_STD;
-                    else if (!PYSTRING_COMPARE(value, "GLP_PT_PSE"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_PT_PSE"))
                         smcp.pricing = GLP_PT_PSE;
                     else
                         PyErr_WarnEx(NULL, "replacing "
@@ -272,11 +258,11 @@ static PyObject *simplex(PyObject *self, PyObject *args, PyObject *kwrds)
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['pricing'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "r_test"))
-                if (PYSTRING_CHECK(value)){
-                    if (!PYSTRING_COMPARE(value, "GLP_RT_STD"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "r_test"))
+                if (PyUnicode_Check(value)){
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_RT_STD"))
                         smcp.r_test = GLP_RT_STD;
-                    else if (!PYSTRING_COMPARE(value, "GLP_RT_HAR"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_RT_HAR"))
                         smcp.r_test = GLP_RT_HAR;
                     else
                         PyErr_WarnEx(NULL, "replacing "
@@ -286,65 +272,65 @@ static PyObject *simplex(PyObject *self, PyObject *args, PyObject *kwrds)
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['r_test'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "tol_bnd"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "tol_bnd"))
                 if (PyFloat_Check(value))
                     smcp.tol_bnd = PyFloat_AsDouble(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['tol_bnd'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "tol_dj"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "tol_dj"))
                 if (PyFloat_Check(value))
                     smcp.tol_dj = PyFloat_AsDouble(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['tol_dj'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "tol_piv"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "tol_piv"))
                 if (PyFloat_Check(value))
                     smcp.tol_piv = PyFloat_AsDouble(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['tol_piv'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "obj_ll"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "obj_ll"))
                 if (PyFloat_Check(value))
                     smcp.obj_ll = PyFloat_AsDouble(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['obj_ll'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "obj_ul"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "obj_ul"))
                 if (PyFloat_Check(value))
                     smcp.obj_ul = PyFloat_AsDouble(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['obj_ul'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "it_lim"))
-                if (PYINT_CHECK(value))
-                    smcp.it_lim = PYINT_AS_LONG(value);
+            else if (!PyUnicode_CompareWithASCIIString(key, "it_lim"))
+                if (PyLong_Check(value))
+                    smcp.it_lim = PyLong_AS_LONG(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['it_lim'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "tm_lim"))
-                if (PYINT_CHECK(value))
-                    smcp.tm_lim = PYINT_AS_LONG(value);
+            else if (!PyUnicode_CompareWithASCIIString(key, "tm_lim"))
+                if (PyLong_Check(value))
+                    smcp.tm_lim = PyLong_AS_LONG(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['tm_lim'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "out_frq"))
-                if (PYINT_CHECK(value))
-                    smcp.out_frq = PYINT_AS_LONG(value);
+            else if (!PyUnicode_CompareWithASCIIString(key, "out_frq"))
+                if (PyLong_Check(value))
+                    smcp.out_frq = PyLong_AS_LONG(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['out_frq'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "out_dly"))
-                if (PYINT_CHECK(value))
-                    smcp.out_dly = PYINT_AS_LONG(value);
+            else if (!PyUnicode_CompareWithASCIIString(key, "out_dly"))
+                if (PyLong_Check(value))
+                    smcp.out_dly = PyLong_AS_LONG(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['out_dly'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "presolve")){
-                if (PYSTRING_CHECK(value)) {
-                    if (!PYSTRING_COMPARE(value, "GLP_ON"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "presolve")){
+                if (PyUnicode_Check(value)) {
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_ON"))
                         smcp.presolve = GLP_ON;
-                    else if (!PYSTRING_COMPARE(value, "GLP_OFF"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_OFF"))
                         smcp.presolve = GLP_OFF;
                     else
                         PyErr_WarnEx(NULL, "replacing "
@@ -378,7 +364,7 @@ static PyObject *simplex(PyObject *self, PyObject *args, PyObject *kwrds)
                     }
 
                     PyTuple_SET_ITEM(t, 0, (PyObject *)
-                        PYSTRING_FROMSTRING("optimal"));
+                        PyUnicode_FromString("optimal"));
 
                     for (i=0; i<n; i++)
                         MAT_BUFD(x)[i] = glp_get_col_prim(lp, i+1);
@@ -399,33 +385,33 @@ static PyObject *simplex(PyObject *self, PyObject *args, PyObject *kwrds)
 
                 case GLP_NOFEAS:
                     PyTuple_SET_ITEM(t, 0, (PyObject *)
-                        PYSTRING_FROMSTRING("primal infeasible"));
+                        PyUnicode_FromString("primal infeasible"));
                     break;
 
                 case GLP_UNBND:
                     PyTuple_SET_ITEM(t, 0, (PyObject *)
-                        PYSTRING_FROMSTRING("dual infeasible"));
+                        PyUnicode_FromString("dual infeasible"));
                     break;
 
                 default:
                     PyTuple_SET_ITEM(t, 0, (PyObject *)
-                        PYSTRING_FROMSTRING("unknown"));
+                        PyUnicode_FromString("unknown"));
             }
             break;
 
         case GLP_ENOPFS:
             PyTuple_SET_ITEM(t, 0, (PyObject *)
-                PYSTRING_FROMSTRING("primal infeasible"));
+                PyUnicode_FromString("primal infeasible"));
             break;
 
         case GLP_ENODFS:
             PyTuple_SET_ITEM(t, 0, (PyObject *)
-                PYSTRING_FROMSTRING("dual infeasible"));
+                PyUnicode_FromString("dual infeasible"));
             break;
 
         default:
             PyTuple_SET_ITEM(t, 0, (PyObject *)
-                PYSTRING_FROMSTRING("unknown"));
+                PyUnicode_FromString("unknown"));
     }
 
     glp_delete_prob(lp);
@@ -612,16 +598,16 @@ static PyObject *integer(PyObject *self, PyObject *args,
     glp_init_iocp(&iocp);
 
     while (PyDict_Next(param, &pos, &key, &value))
-        if (PYSTRING_CHECK(key)){
-            if (!PYSTRING_COMPARE(key, "msg_lev"))
-                if (PYSTRING_CHECK(value)){
-                    if (!PYSTRING_COMPARE(value, "GLP_MSG_OFF"))
+        if (PyUnicode_Check(key)){
+            if (!PyUnicode_CompareWithASCIIString(key, "msg_lev"))
+                if (PyUnicode_Check(value)){
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_MSG_OFF"))
                         iocp.msg_lev = GLP_MSG_OFF;
-                    else if (!PYSTRING_COMPARE(value, "GLP_MSG_ERR"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_MSG_ERR"))
                         iocp.msg_lev = GLP_MSG_ERR;
-                    else if (!PYSTRING_COMPARE(value, "GLP_MSG_ON"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_MSG_ON"))
                         iocp.msg_lev = GLP_MSG_ON;
-                    else if (!PYSTRING_COMPARE(value, "GLP_MSG_ALL"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_MSG_ALL"))
                         iocp.msg_lev = GLP_MSG_ALL;
                     else
                         PyErr_WarnEx(NULL, "replacing "
@@ -631,18 +617,18 @@ static PyObject *integer(PyObject *self, PyObject *args,
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['msg_lev'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "br_tech"))
-                if (PYSTRING_CHECK(value)){
-                    if (!PYSTRING_COMPARE(value, "GLP_BR_FFV"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "br_tech"))
+                if (PyUnicode_Check(value)){
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_BR_FFV"))
                         iocp.br_tech= GLP_BR_FFV;
-                    else if (!PYSTRING_COMPARE(value, "GLP_BR_LFV"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_BR_LFV"))
                         iocp.br_tech = GLP_BR_LFV;
-                    else if (!PYSTRING_COMPARE(value, "GLP_BR_MFV"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_BR_MFV"))
                         iocp.br_tech = GLP_BR_MFV;
-                    else if (!PYSTRING_COMPARE(value, "GLP_BR_DTH"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_BR_DTH"))
                         iocp.br_tech = GLP_BR_DTH;
 #if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 40) || GLP_MAJOR_VERSION >= 5
-                    else if (!PYSTRING_COMPARE(value, "GLP_BR_PCH"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_BR_PCH"))
                         iocp.br_tech = GLP_BR_PCH;
 #endif
                     else
@@ -653,15 +639,15 @@ static PyObject *integer(PyObject *self, PyObject *args,
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['br_tech'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "bt_tech"))
-                if (PYSTRING_CHECK(value)){
-                    if (!PYSTRING_COMPARE(value, "GLP_BT_DFS"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "bt_tech"))
+                if (PyUnicode_Check(value)){
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_BT_DFS"))
                         iocp.bt_tech = GLP_BT_DFS;
-                    else if (!PYSTRING_COMPARE(value, "GLP_BT_BFS"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_BT_BFS"))
                         iocp.bt_tech = GLP_BT_BFS;
-                    else if (!PYSTRING_COMPARE(value, "GLP_BT_BLB"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_BT_BLB"))
                         iocp.bt_tech = GLP_BT_BLB;
-                    else if (!PYSTRING_COMPARE(value, "GLP_BT_BPH"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_BT_BPH"))
                         iocp.bt_tech = GLP_BT_BPH;
                     else
                         PyErr_WarnEx(NULL, "replacing "
@@ -672,13 +658,13 @@ static PyObject *integer(PyObject *self, PyObject *args,
                     PyErr_WarnEx(NULL, "replacing glpk.options['bt_tech'] "
                         "with default value", 1);
 #if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35) || GLP_MAJOR_VERSION >= 5
-            else if (!PYSTRING_COMPARE(key, "pp_tech"))
-                if (PYSTRING_CHECK(value)){
-                    if (!PYSTRING_COMPARE(value, "GLP_PP_NONE"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "pp_tech"))
+                if (PyUnicode_Check(value)){
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_PP_NONE"))
                         iocp.pp_tech = GLP_PP_NONE;
-                    else if (!PYSTRING_COMPARE(value, "GLP_PP_ROOT"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_PP_ROOT"))
                         iocp.pp_tech = GLP_PP_ROOT;
-                    else if (!PYSTRING_COMPARE(value, "GLP_PP_ALL"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_PP_ALL"))
                         iocp.pp_tech = GLP_PP_ALL;
                     else
                         PyErr_WarnEx(NULL, "replacing "
@@ -690,11 +676,11 @@ static PyObject *integer(PyObject *self, PyObject *args,
                         "with default value", 1);
 #endif
 #if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 40) || GLP_MAJOR_VERSION >= 5
-            else if (!PYSTRING_COMPARE(key, "fp_heur"))
-                if (PYSTRING_CHECK(value)){
-                    if (!PYSTRING_COMPARE(value, "GLP_ON"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "fp_heur"))
+                if (PyUnicode_Check(value)){
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_ON"))
                         iocp.fp_heur = GLP_ON;
-                    else if (!PYSTRING_COMPARE(value, "GLP_OFF"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_OFF"))
                         iocp.fp_heur = GLP_OFF;
                     else
                         PyErr_WarnEx(NULL, "replacing "
@@ -706,11 +692,11 @@ static PyObject *integer(PyObject *self, PyObject *args,
                         "with default value", 1);
 #endif
 #if 0
-            else if (!PYSTRING_COMPARE(key, "ps_heur"))
-                if (PYSTRING_CHECK(value)){
-                    if (!PYSTRING_COMPARE(value, "GLP_ON"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "ps_heur"))
+                if (PyUnicode_Check(value)){
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_ON"))
                         iocp.ps_heur = GLP_ON;
-                    else if (!PYSTRING_COMPARE(value, "GLP_OFF"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_OFF"))
                         iocp.ps_heur = GLP_OFF;
                     else
                         PyErr_WarnEx(NULL, "replacing "
@@ -720,19 +706,19 @@ static PyObject *integer(PyObject *self, PyObject *args,
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['ps_heur'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "ps_tm_lim"))
-                if (PYINT_CHECK(value))
-                    iocp.ps_tm_lim = PYINT_AS_LONG(value);
+            else if (!PyUnicode_CompareWithASCIIString(key, "ps_tm_lim"))
+                if (PyLong_Check(value))
+                    iocp.ps_tm_lim = PyLong_AS_LONG(value);
                 else
                     PyErr_WarnEx(NULL, "replacing "
                         "glpk.options['ps_tm_lim'] with default value", 1);
 #endif
 #if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35) || GLP_MAJOR_VERSION >= 5
-            else if (!PYSTRING_COMPARE(key, "gmi_cuts"))
-                if (PYSTRING_CHECK(value)){
-                    if (!PYSTRING_COMPARE(value, "GLP_ON"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "gmi_cuts"))
+                if (PyUnicode_Check(value)){
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_ON"))
                         iocp.gmi_cuts = GLP_ON;
-                    else if (!PYSTRING_COMPARE(value, "GLP_OFF"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_OFF"))
                         iocp.gmi_cuts = GLP_OFF;
                     else
                         PyErr_WarnEx(NULL, "replacing "
@@ -742,11 +728,11 @@ static PyObject *integer(PyObject *self, PyObject *args,
                 else
                     PyErr_WarnEx(NULL, "replacing "
                         "glpk.options['gmi_cuts'] with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "mir_cuts"))
-                if (PYSTRING_CHECK(value)){
-                    if (!PYSTRING_COMPARE(value, "GLP_ON"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "mir_cuts"))
+                if (PyUnicode_Check(value)){
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_ON"))
                         iocp.mir_cuts = GLP_ON;
-                    else if (!PYSTRING_COMPARE(value, "GLP_OFF"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_OFF"))
                         iocp.mir_cuts = GLP_OFF;
                     else
                         PyErr_WarnEx(NULL, "replacing "
@@ -756,11 +742,11 @@ static PyObject *integer(PyObject *self, PyObject *args,
                 else
                     PyErr_WarnEx(NULL, "replacing "
                         "glpk.options['mir_cuts'] with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "cov_cuts"))
-                if (PYSTRING_CHECK(value)){
-                    if (!PYSTRING_COMPARE(value, "GLP_ON"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "cov_cuts"))
+                if (PyUnicode_Check(value)){
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_ON"))
                         iocp.cov_cuts = GLP_ON;
-                    else if (!PYSTRING_COMPARE(value, "GLP_OFF"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_OFF"))
                         iocp.cov_cuts = GLP_OFF;
                     else
                         PyErr_WarnEx(NULL, "replacing "
@@ -770,11 +756,11 @@ static PyObject *integer(PyObject *self, PyObject *args,
                 else
                     PyErr_WarnEx(NULL, "replacing "
                         "glpk.options['cov_cuts'] with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "clq_cuts"))
-                if (PYSTRING_CHECK(value)){
-                    if (!PYSTRING_COMPARE(value, "GLP_ON"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "clq_cuts"))
+                if (PyUnicode_Check(value)){
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_ON"))
                         iocp.clq_cuts = GLP_ON;
-                    else if (!PYSTRING_COMPARE(value, "GLP_OFF"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_OFF"))
                         iocp.clq_cuts = GLP_OFF;
                     else
                         PyErr_WarnEx(NULL, "replacing "
@@ -785,62 +771,62 @@ static PyObject *integer(PyObject *self, PyObject *args,
                     PyErr_WarnEx(NULL, "replacing "
                         "glpk.options['clq_cuts'] with default value", 1);
 #endif
-            else if (!PYSTRING_COMPARE(key, "tol_int"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "tol_int"))
                 if (PyFloat_Check(value))
                     iocp.tol_int = PyFloat_AsDouble(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['tol_int'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "tol_obj"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "tol_obj"))
                 if (PyFloat_Check(value))
                     iocp.tol_obj = PyFloat_AsDouble(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['tol_obj'] "
                         "with default value", 1);
 #if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35) || GLP_MAJOR_VERSION >= 5
-            else if (!PYSTRING_COMPARE(key, "mip_gap"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "mip_gap"))
                 if (PyFloat_Check(value))
                     iocp.mip_gap = PyFloat_AsDouble(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['mip_gap'] "
                         "with default value", 1);
 #endif
-            else if (!PYSTRING_COMPARE(key, "tm_lim"))
-                if (PYINT_CHECK(value))
-                    iocp.tm_lim = PYINT_AS_LONG(value);
+            else if (!PyUnicode_CompareWithASCIIString(key, "tm_lim"))
+                if (PyLong_Check(value))
+                    iocp.tm_lim = PyLong_AS_LONG(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['tm_lim'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "out_frq"))
-                if (PYINT_CHECK(value))
-                    iocp.out_frq = PYINT_AS_LONG(value);
+            else if (!PyUnicode_CompareWithASCIIString(key, "out_frq"))
+                if (PyLong_Check(value))
+                    iocp.out_frq = PyLong_AS_LONG(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['out_frq'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "out_dly"))
-                if (PYINT_CHECK(value))
-                    iocp.out_dly = PYINT_AS_LONG(value);
+            else if (!PyUnicode_CompareWithASCIIString(key, "out_dly"))
+                if (PyLong_Check(value))
+                    iocp.out_dly = PyLong_AS_LONG(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['out_dly'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "glp_tree"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "glp_tree"))
                 PyErr_WarnEx(NULL, "replacing glpk.options['glp_tree'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "cb_info"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "cb_info"))
                 PyErr_WarnEx(NULL, "replacing glpk.options['cb_info'] "
                         "with default value", 1);
 #if (GLP_MAJOR_VERSION >= 4 && GLP_MINOR_VERSION >= 35) || GLP_MAJOR_VERSION >= 5
-            else if (!PYSTRING_COMPARE(key, "cb_size"))
-                if (PYINT_CHECK(value))
-                    iocp.cb_size = PYINT_AS_LONG(value);
+            else if (!PyUnicode_CompareWithASCIIString(key, "cb_size"))
+                if (PyLong_Check(value))
+                    iocp.cb_size = PyLong_AS_LONG(value);
                 else
                     PyErr_WarnEx(NULL, "replacing glpk.options['cb_size'] "
                         "with default value", 1);
-            else if (!PYSTRING_COMPARE(key, "presolve"))
-                if (PYSTRING_CHECK(value)) {
-                    if (!PYSTRING_COMPARE(value, "GLP_ON"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "presolve"))
+                if (PyUnicode_Check(value)) {
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_ON"))
                         iocp.presolve = GLP_ON;
-                    else if (!PYSTRING_COMPARE(value, "GLP_OFF")){
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_OFF")){
                         iocp.presolve = GLP_ON;
                         PyErr_WarnEx(NULL, "replacing "
                             "glpk.options['presolve'] with GLP_ON", 1);
@@ -852,11 +838,11 @@ static PyObject *integer(PyObject *self, PyObject *args,
                 else
                     PyErr_WarnEx(NULL, "replacing "
                         "glpk.options['presolve'] with GLP_ON", 1);
-            else if (!PYSTRING_COMPARE(key, "binarize")) {
-                if (PYSTRING_CHECK(value)) {
-                    if (!PYSTRING_COMPARE(value, "GLP_ON"))
+            else if (!PyUnicode_CompareWithASCIIString(key, "binarize")) {
+                if (PyUnicode_Check(value)) {
+                    if (!PyUnicode_CompareWithASCIIString(value, "GLP_ON"))
                         iocp.binarize = GLP_ON;
-                    else if (!PYSTRING_COMPARE(value, "GLP_OFF"))
+                    else if (!PyUnicode_CompareWithASCIIString(value, "GLP_OFF"))
                         iocp.binarize = GLP_OFF;
                     else
                         PyErr_WarnEx(NULL, "replacing "
@@ -881,12 +867,12 @@ static PyObject *integer(PyObject *self, PyObject *args,
             "Critical error: not sequence");
         for (i=0; i<PySet_GET_SIZE(IntSet); i++) {
             PyObject *tmp = PySequence_Fast_GET_ITEM(iter, i);
-            if (!PYINT_CHECK(tmp)) {
+            if (!PyLong_Check(tmp)) {
                 glp_delete_prob(lp);
                 Py_DECREF(iter);
                 PY_ERR_TYPE("non-integer element in I");
             }
-            int k = PYINT_AS_LONG(tmp);
+            int k = PyLong_AS_LONG(tmp);
             if ((k < 0) || (k >= n)) {
                  glp_delete_prob(lp);
                  Py_DECREF(iter);
@@ -903,12 +889,12 @@ static PyObject *integer(PyObject *self, PyObject *args,
             "Critical error: not sequence");
         for (i=0; i<PySet_GET_SIZE(BinSet); i++) {
             PyObject *tmp = PySequence_Fast_GET_ITEM(iter, i);
-            if (!PYINT_CHECK(tmp)) {
+            if (!PyLong_Check(tmp)) {
                 glp_delete_prob(lp);
                 Py_DECREF(iter);
                 PY_ERR_TYPE("non-binary element in I");
             }
-            int k = PYINT_AS_LONG(tmp);
+            int k = PyLong_AS_LONG(tmp);
             if ((k < 0) || (k >= n)) {
                 glp_delete_prob(lp);
                 Py_DECREF(iter);
@@ -942,13 +928,13 @@ static PyObject *integer(PyObject *self, PyObject *args,
                     }
                     if (status == GLP_OPT)
                         PyTuple_SET_ITEM(t, 0,
-                            (PyObject *) PYSTRING_FROMSTRING("optimal"));
+                            (PyObject *) PyUnicode_FromString("optimal"));
                     else if (status == GLP_FEAS)
                         PyTuple_SET_ITEM(t, 0,
-                           (PyObject *)PYSTRING_FROMSTRING("feasible"));
+                           (PyObject *)PyUnicode_FromString("feasible"));
                     else
                         PyTuple_SET_ITEM(t, 0,
-                           (PyObject *)PYSTRING_FROMSTRING("undefined"));
+                           (PyObject *)PyUnicode_FromString("undefined"));
                     for (i=0; i<n; i++)
                         MAT_BUFD(x)[i] = glp_mip_col_val(lp, i+1);
                     PyTuple_SET_ITEM(t, 1, (PyObject *) x);
@@ -958,14 +944,14 @@ static PyObject *integer(PyObject *self, PyObject *args,
 
                 case GLP_NOFEAS:
                     PyTuple_SET_ITEM(t, 0, (PyObject *)
-                        PYSTRING_FROMSTRING("infeasible problem"));
+                        PyUnicode_FromString("infeasible problem"));
                     PyTuple_SET_ITEM(t, 1, Py_BuildValue(""));
                     break;
 
                 default:
                     PyTuple_SET_ITEM(t, 1, Py_BuildValue(""));
                     PyTuple_SET_ITEM(t, 0, (PyObject *)
-                        PYSTRING_FROMSTRING("unknown"));
+                        PyUnicode_FromString("unknown"));
             }
             break;
 
@@ -977,29 +963,29 @@ static PyObject *integer(PyObject *self, PyObject *args,
 
         case GLP_EBOUND:
             PyTuple_SET_ITEM(t, 0, (PyObject *)
-                PYSTRING_FROMSTRING("invalid MIP formulation"));
+                PyUnicode_FromString("invalid MIP formulation"));
             break;
 
         case GLP_ENOPFS:
             PyTuple_SET_ITEM(t, 0, (PyObject *)
-                PYSTRING_FROMSTRING("LP relaxation is primal infeasible"));
+                PyUnicode_FromString("LP relaxation is primal infeasible"));
             break;
 
 	case GLP_ENODFS:
             PyTuple_SET_ITEM(t, 0, (PyObject *)
-                PYSTRING_FROMSTRING("LP relaxation is dual infeasible"));
+                PyUnicode_FromString("LP relaxation is dual infeasible"));
             break;
 
 	case GLP_EFAIL:
             PyTuple_SET_ITEM(t, 0, (PyObject *)
-                PYSTRING_FROMSTRING("solver failure"));
+                PyUnicode_FromString("solver failure"));
             break;
 
         case GLP_EROOT: /* only occurs if presolver is off */
         case GLP_ESTOP: /* only occurs when advanced interface is used */
         default:
             PyTuple_SET_ITEM(t, 0, (PyObject *)
-                PYSTRING_FROMSTRING("unknown"));
+                PyUnicode_FromString("unknown"));
     }
 
     glp_delete_prob(lp);
@@ -1015,8 +1001,6 @@ static PyMethodDef glpk_functions[] = {
         doc_integer},
     {NULL}  /* Sentinel */
 };
-
-#if PY_MAJOR_VERSION >= 3
 
 static PyModuleDef glpk_module_def = {
     PyModuleDef_HEAD_INIT,
@@ -1034,15 +1018,3 @@ PyMODINIT_FUNC PyInit_glpk(void)
   if (import_kvxopt() < 0) return NULL;
   return glpk_module;
 }
-
-#else
-
-PyMODINIT_FUNC initglpk(void)
-{
-    glpk_module = Py_InitModule3("kvxopt.glpk", glpk_functions,
-        glpk__doc__);
-    PyModule_AddObject(glpk_module, "options", PyDict_New());
-    if (import_kvxopt() < 0) return;
-}
-
-#endif

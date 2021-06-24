@@ -172,7 +172,6 @@ static PyMethodDef gsl_functions[] = {
 {NULL}  /* Sentinel */
 };
 
-#if PY_MAJOR_VERSION >= 3
 
 static PyModuleDef gsl_module = {
     PyModuleDef_HEAD_INIT,
@@ -191,13 +190,3 @@ PyMODINIT_FUNC PyInit_gsl(void)
   return m;
 }
 
-#else
-
-PyMODINIT_FUNC initgsl(void)
-{
-  PyObject *m;
-  m = Py_InitModule3("kvxopt.gsl", gsl_functions, gsl__doc__);
-  if (import_kvxopt() < 0) return;
-}
-
-#endif
