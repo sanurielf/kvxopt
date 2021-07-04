@@ -631,8 +631,6 @@ static PyMethodDef osqp_functions[] = {
     {NULL}  /* Sentinel */
 };
 
-#if PY_MAJOR_VERSION >= 3
-
 static PyModuleDef osqp_module_def = {
     PyModuleDef_HEAD_INIT,
     "osqp",
@@ -649,15 +647,3 @@ PyMODINIT_FUNC PyInit_osqp(void)
     if (import_kvxopt() < 0) return NULL;
     return osqp_module;
 }
-
-#else
-
-PyMODINIT_FUNC initosqp(void)
-{
-    osqp_module = Py_InitModule3("kvxopt.osqp", osqp_functions,
-                                 osqp__doc__);
-    PyModule_AddObject(osqp_module, "options", PyDict_New());
-    if (import_kvxopt() < 0) return;
-}
-
-#endif
