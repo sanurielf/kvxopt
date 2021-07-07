@@ -86,6 +86,11 @@ pipeline {
 
           environment {
             PATH = "${HOME}/.local/bin:$PATH"
+            KVXOPT_BUILD_GRB = '1'
+            KVXOPT_GRB_LIB_DIR = '/opt/gurobi912/linux64/lib'
+            LD_LIBRARY_PATH = '/opt/gurobi912/linux64/lib'
+            KVXOPT_GRB_INC_DIR = '/opt/gurobi912/linux64/include'
+            KVXOPT_GRB_LIB = 'gurobi91'
           }
 
           stages {
