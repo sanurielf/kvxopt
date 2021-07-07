@@ -56,6 +56,18 @@ OSQP_LIB_DIR = '/usr/local/lib'
 # Directory containing glpk.h (used only when BUILD_OSQP = 1).
 OSQP_INC_DIR = '/usr/local/include/osqp'
 
+# Set to 1 if you want to compile the Gurobi C extension for DCOPF
+BUILD_GRB = 0
+
+# Directory containing libgurobi (used only when BUILD_GRB = 1).
+GRB_LIB_DIR = '/Library/gurobi911/mac64/lib'
+
+# Directory containing the Gurobi header files (used only when BUILD_GRB = 1).
+GRB_INC_DIR = '/Library/gurobi911/mac64/include'
+
+# Name of the Gurobi lib
+GRB_LIB = 'gurobi91'
+
 # Set to 1 if you are installing the DSDP module.
 BUILD_DSDP = 0
 
@@ -120,6 +132,11 @@ GLPK_INC_DIR = os.environ.get("KVXOPT_GLPK_INC_DIR",GLPK_INC_DIR)
 BUILD_OSQP = int(os.environ.get("KVXOPT_BUILD_OSQP",BUILD_OSQP))
 OSQP_LIB_DIR = os.environ.get("KVXOPT_OSQP_LIB_DIR",OSQP_LIB_DIR)
 OSQP_INC_DIR = os.environ.get("KVXOPT_OSQP_INC_DIR",OSQP_INC_DIR)
+BUILD_GRB = int(os.environ.get("KVXOPT_BUILD_GRB", BUILD_GRB))
+GRB_LIB_DIR = os.environ.get("KVXOPT_GRB_LIB_DIR", GRB_LIB_DIR)
+GRB_INC_DIR = os.environ.get("KVXOPT_GRB_INC_DIR", GRB_INC_DIR)
+GRB_LIB = os.environ.get("KVXOPT_GRB_LIB",GRB_LIB)
+if type(GRB_LIB) is str: GRB_LIB = GRB_LIB.strip().split(';')
 BUILD_DSDP = int(os.environ.get("KVXOPT_BUILD_DSDP",BUILD_DSDP))
 DSDP_LIB_DIR = os.environ.get("KVXOPT_DSDP_LIB_DIR",DSDP_LIB_DIR)
 DSDP_INC_DIR = os.environ.get("KVXOPT_DSDP_INC_DIR",DSDP_INC_DIR)
@@ -197,6 +214,14 @@ if BUILD_OSQP:
         define_macros = MACROS + [('DDEBUG', ''), ('PRINTING', '')],
         sources = ['src/C/osqp.c'] )
     extmods += [osqp];
+
+if BUILD_GRB:
+    grb = Extension('gurobi', libraries=GRB_LIB,
+                    include_dirs=[GRB_INC_DIR],
+                    library_dirs=[GRB_LIB_DIR],
+                    define_macros=MACROS,
+                    sources=['src/C/gurobi.c'])
+    extmods += [grb]
 
 if BUILD_DSDP:
     dsdp = Extension('dsdp', libraries = ['dsdp'] + LAPACK_LIB + BLAS_LIB,

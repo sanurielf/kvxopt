@@ -2780,7 +2780,7 @@ def lp(c, G, h, A = None, b = None, kktsolver = None, solver = None, primalstart
     options = kwargs.get('options',globals()['options'])
 
     import math
-    from kvxopt import base, blas, misc
+    from kvxopt import base, blas, misc, sparse
     from kvxopt.base import matrix, spmatrix
 
     if not isinstance(c, matrix) or c.typecode != 'd' or c.size[1] != 1:
@@ -2804,7 +2804,7 @@ def lp(c, G, h, A = None, b = None, kktsolver = None, solver = None, primalstart
     if not isinstance(b,matrix) or b.typecode != 'd' or b.size != (p,1):
         raise TypeError("'b' must be a dense matrix of size (%d,1)" %p)
 
-    if solver in ('glpk', 'osqp'):
+    if solver in ('glpk', 'osqp', 'gurobi'):
         if solver == 'glpk':
             try: from kvxopt import glpk
             except ImportError: raise ValueError("invalid option "\
@@ -2830,6 +2830,19 @@ def lp(c, G, h, A = None, b = None, kktsolver = None, solver = None, primalstart
 
             if status == 'solved':
                 status = 'optimal'
+
+        elif solver == 'gurobi':
+            try: from kvxopt import gurobi
+            except ImportError: raise ValueError("invalid option "\
+                "(solver = 'gurobi'): kvxopt.gurobi is not installed")
+            opts = options.get('gurobi', None)
+
+            if isinstance(G, matrix):
+                G = sparse(G)
+            if isinstance(A, matrix):
+                A = sparse(A)
+
+            status, x, z, y = gurobi.qp(c, G, h, A, b, options = opts)
 
         if status == 'optimal':
 

@@ -8,3 +8,4 @@ __pycache__/*
 doc/build*
 *.so
 *.bat
+.vscode*
