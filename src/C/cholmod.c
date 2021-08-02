@@ -83,9 +83,7 @@ static int set_options(void)
     int_t pos=0;
     PyObject *param, *key, *value;
     char err_str[100];
-#if PY_MAJOR_VERSION < 3
-    char *keystr;
-#endif
+
 
     CHOL(defaults)(&Common);
     Common.print = 0;
@@ -98,7 +96,6 @@ static int set_options(void)
         return 0;
     }
     while (PyDict_Next(param, &pos, &key, &value))
-#if PY_MAJOR_VERSION >= 3
         if (PyUnicode_Check(key)) {
             const char *keystr = _PyUnicode_AsString(key);
             if (!strcmp("supernodal", keystr) && PyLong_Check(value))
@@ -120,28 +117,7 @@ static int set_options(void)
                 return 0;
             }
         }
-#else
-        if ((keystr = PyString_AsString(key))) {
-            if (!strcmp("supernodal", keystr) && PyInt_Check(value))
-                Common.supernodal = (int) PyInt_AsLong(value);
-            else if (!strcmp("print", keystr) && PyInt_Check(value))
-                Common.print = (int) PyInt_AsLong(value);
-            else if (!strcmp("nmethods", keystr) && PyInt_Check(value))
-                Common.nmethods = (int) PyInt_AsLong(value);
-            else if (!strcmp("postorder", keystr) &&
-                PyBool_Check(value))
-                Common.postorder = (int) PyInt_AsLong(value);
-            else if (!strcmp("dbound", keystr) && PyFloat_Check(value))
-                Common.dbound = (double) PyFloat_AsDouble(value);
-            else {
-                sprintf(err_str, "invalid value for CHOLMOD parameter:" \
-                   " %-.20s", keystr);
-                PyErr_SetString(PyExc_ValueError, err_str);
-                Py_DECREF(param);
-                return 0;
-            }
-        }
-#endif
+
     Py_DECREF(param);
     return 1;
 }
@@ -225,18 +201,12 @@ static void free_matrix(cholmod_sparse *A)
     CHOL(free_sparse)(&A, &Common);
 }
 
-#if PY_MAJOR_VERSION >= 3
 static void kvxopt_free_cholmod_factor(void *L)
 {
    void *Lptr = PyCapsule_GetPointer(L, PyCapsule_GetName(L));
    CHOL(free_factor) ((cholmod_factor **) &Lptr, &Common);
 }
-#else
-static void kvxopt_free_cholmod_factor(void *L, void *descr)
-{
-    CHOL(free_factor) ((cholmod_factor **) &L, &Common) ;
-}
-#endif
+
 
 
 static char doc_symbolic[] =
@@ -272,23 +242,17 @@ static PyObject* symbolic(PyObject *self, PyObject *args,
     cholmod_sparse *Ac = NULL;
     cholmod_factor *L;
     matrix *P=NULL;
-#if PY_MAJOR_VERSION >= 3
     int uplo_='L';
-#endif
     char uplo='L';
     int n;
     char *kwlist[] = {"A", "p", "uplo", NULL};
 
     if (!set_options()) return NULL;
 
-#if PY_MAJOR_VERSION >= 3
     if (!PyArg_ParseTupleAndKeywords(args, kwrds, "O|OC", kwlist, &A,
         &P, &uplo_)) return NULL;
     uplo = (char) uplo_;
-#else
-    if (!PyArg_ParseTupleAndKeywords(args, kwrds, "O|Oc", kwlist, &A,
-        &P, &uplo)) return NULL;
-#endif
+
     if (!SpMatrix_Check(A) || SP_NROWS(A) != SP_NCOLS(A))
         PY_ERR_TYPE("A is not a square sparse matrix");
     n = SP_NROWS(A);
@@ -313,18 +277,10 @@ static PyObject* symbolic(PyObject *self, PyObject *args,
             return NULL;
         }
     }
-#if PY_MAJOR_VERSION >= 3
     return (PyObject *) PyCapsule_New((void *) L, SP_ID(A)==DOUBLE ?
         (uplo == 'L' ?  "CHOLMOD FACTOR D L" : "CHOLMOD FACTOR D U") :
         (uplo == 'L' ?  "CHOLMOD FACTOR Z L" : "CHOLMOD FACTOR Z U"),
         (PyCapsule_Destructor) &kvxopt_free_cholmod_factor);
-#else
-    return (PyObject *) PyCObject_FromVoidPtrAndDesc((void *) L,
-        SP_ID(A)==DOUBLE ?
-        (uplo == 'L' ?  "CHOLMOD FACTOR D L" : "CHOLMOD FACTOR D U") :
-        (uplo == 'L' ?  "CHOLMOD FACTOR Z L" : "CHOLMOD FACTOR Z U"),
-	kvxopt_free_cholmod_factor);
-#endif
 }
 
 
@@ -363,11 +319,8 @@ static PyObject* numeric(PyObject *self, PyObject *args)
     cholmod_factor *Lc;
     cholmod_sparse *Ac = NULL;
     char uplo;
-#if PY_MAJOR_VERSION >= 3
     const char *descr;
-#else
-    char *descr;
-#endif
+
 
     if (!set_options()) return NULL;
 
@@ -376,14 +329,9 @@ static PyObject* numeric(PyObject *self, PyObject *args)
     if (!SpMatrix_Check(A) || SP_NROWS(A) != SP_NCOLS(A))
         PY_ERR_TYPE("A is not a sparse matrix");
 
-#if PY_MAJOR_VERSION >= 3
     if (!PyCapsule_CheckExact(F) || !(descr = PyCapsule_GetName(F)))
         err_CO("F");
-#else
-    if (!PyCObject_Check(F)) err_CO("F");
-    descr = PyCObject_GetDesc(F);
-    if (!descr) PY_ERR_TYPE("F is not a CHOLMOD factor");
-#endif
+
     if (SP_ID(A) == DOUBLE){
         if (!strcmp(descr, "CHOLMOD FACTOR D L"))
 	    uplo = 'L';
@@ -399,11 +347,8 @@ static PyObject* numeric(PyObject *self, PyObject *args)
         else
 	    PY_ERR_TYPE("F is not the CHOLMOD factor of a 'z' matrix");
     }
-#if PY_MAJOR_VERSION >= 3
     Lc = (cholmod_factor *) PyCapsule_GetPointer(F, descr);
-#else
-    Lc = (cholmod_factor *) PyCObject_AsVoidPtr(F);
-#endif
+
     if (!(Ac = pack(A, uplo))) return PyErr_NoMemory();
     CHOL(factorize) (Ac, Lc, &Common);
     CHOL(free_sparse)(&Ac, &Common);
@@ -476,11 +421,7 @@ static PyObject* solve(PyObject *self, PyObject *args, PyObject *kwrds)
     matrix *B;
     PyObject *F;
     int i, n, oB=0, ldB=0, nrhs=-1, sys=0;
-#if PY_MAJOR_VERSION >= 3
     const char *descr;
-#else
-    char *descr;
-#endif
     char *kwlist[] = {"F", "B", "sys", "nrhs", "ldB", "offsetB", NULL};
     int sysvalues[] = { CHOLMOD_A, CHOLMOD_LDLt, CHOLMOD_LD,
         CHOLMOD_DLt, CHOLMOD_L, CHOLMOD_Lt, CHOLMOD_D, CHOLMOD_P,
@@ -491,19 +432,12 @@ static PyObject* solve(PyObject *self, PyObject *args, PyObject *kwrds)
     if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OO|iiii", kwlist,
         &F, &B, &sys, &nrhs, &ldB, &oB)) return NULL;
 
-#if PY_MAJOR_VERSION >= 3
     if (!PyCapsule_CheckExact(F) || !(descr = PyCapsule_GetName(F)))
         err_CO("F");
     if (strncmp(descr, "CHOLMOD FACTOR", 14))
         PY_ERR_TYPE("F is not a CHOLMOD factor");
     cholmod_factor *L = (cholmod_factor *) PyCapsule_GetPointer(F, descr);
-#else
-    if (!PyCObject_Check(F)) err_CO("F");
-    descr = PyCObject_GetDesc(F);
-    if (!descr || strncmp(descr, "CHOLMOD FACTOR", 14))
-        PY_ERR_TYPE("F is not a CHOLMOD factor");
-    cholmod_factor *L = (cholmod_factor *) PyCObject_AsVoidPtr(F);
-#endif
+
     if (L->xtype == CHOLMOD_PATTERN)
         PY_ERR(PyExc_ValueError, "called with symbolic factor");
 
@@ -582,11 +516,7 @@ static PyObject* spsolve(PyObject *self, PyObject *args,
     PyObject *F;
     cholmod_factor *L;
     int n, sys=0;
-#if PY_MAJOR_VERSION >= 3
     const char *descr;
-#else
-    char *descr;
-#endif
     char *kwlist[] = {"F", "B", "sys", NULL};
     int sysvalues[] = {CHOLMOD_A, CHOLMOD_LDLt, CHOLMOD_LD,
         CHOLMOD_DLt, CHOLMOD_L, CHOLMOD_Lt, CHOLMOD_D, CHOLMOD_P,
@@ -597,19 +527,12 @@ static PyObject* spsolve(PyObject *self, PyObject *args,
     if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OO|i", kwlist, &F,
         &B, &sys)) return NULL;
 
-#if PY_MAJOR_VERSION >= 3
     if (!PyCapsule_CheckExact(F) || !(descr = PyCapsule_GetName(F)))
         err_CO("F");
     if (strncmp(descr, "CHOLMOD FACTOR", 14))
         PY_ERR_TYPE("F is not a CHOLMOD factor");
     L = (cholmod_factor *) PyCapsule_GetPointer(F, descr);
-#else
-    if (!PyCObject_Check(F)) err_CO("F");
-    descr = PyCObject_GetDesc(F);
-    if (!descr || strncmp(descr, "CHOLMOD FACTOR", 14))
-        PY_ERR_TYPE("F is not a CHOLMOD factor");
-    L = (cholmod_factor *) PyCObject_AsVoidPtr(F);
-#endif
+
     if (L->xtype == CHOLMOD_PATTERN)
         PY_ERR(PyExc_ValueError, "called with symbolic factor");
     n = L->n;
@@ -686,22 +609,16 @@ static PyObject* linsolve(PyObject *self, PyObject *args,
     cholmod_factor *L=NULL;
     cholmod_dense *x=NULL, *b=NULL;
     void *b_old;
-#if PY_MAJOR_VERSION >= 3
     int uplo_ = 'L';
-#endif
     char uplo='L';
     char *kwlist[] = {"A", "B", "p", "uplo", "nrhs", "ldB", "offsetB",
         NULL};
 
     if (!set_options()) return NULL;
-#if PY_MAJOR_VERSION >= 3
     if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OO|OCiii", kwlist,
         &A,  &B, &P, &uplo_, &nrhs, &ldB, &oB)) return NULL;
     uplo = (char) uplo_;
-#else
-    if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OO|Ociii", kwlist,
-        &A,  &B, &P, &uplo, &nrhs, &ldB, &oB)) return NULL;
-#endif
+
 
     if (!SpMatrix_Check(A) || SP_NROWS(A) != SP_NCOLS(A))
         PY_ERR_TYPE("A is not a sparse matrix");
@@ -836,21 +753,15 @@ static PyObject* splinsolve(PyObject *self, PyObject *args,
     int n;
     cholmod_sparse *Ac=NULL, *Bc=NULL, *Xc=NULL;
     cholmod_factor *L=NULL;
-#if PY_MAJOR_VERSION >= 3
     int uplo_='L';
-#endif
     char uplo='L';
     char *kwlist[] = {"A", "B", "p", "uplo", NULL};
 
     if (!set_options()) return NULL;
-#if PY_MAJOR_VERSION >= 3
     if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OO|OC", kwlist, &A,
         &B, &P, &uplo_)) return NULL;
     uplo = (char) uplo_;
-#else
-    if (!PyArg_ParseTupleAndKeywords(args, kwrds, "OO|Oc", kwlist, &A,
-        &B, &P, &uplo)) return NULL;
-#endif
+
 
     if (!SpMatrix_Check(A) || SP_NROWS(A) != SP_NCOLS(A))
         PY_ERR_TYPE("A is not a square sparse matrix");
@@ -965,29 +876,18 @@ static PyObject* diag(PyObject *self, PyObject *args)
     PyObject *F;
     matrix *d=NULL;
     cholmod_factor *L;
-#if PY_MAJOR_VERSION >= 3
     const char *descr;
-#else
-    char *descr;
-#endif
     int k, strt, incx=1, incy, nrows, ncols;
 
     if (!set_options()) return NULL;
     if (!PyArg_ParseTuple(args, "O", &F)) return NULL;
 
-#if PY_MAJOR_VERSION >= 3
     if (!PyCapsule_CheckExact(F) || !(descr = PyCapsule_GetName(F)))
         err_CO("F");
     if (strncmp(descr, "CHOLMOD FACTOR", 14))
         PY_ERR_TYPE("F is not a CHOLMOD factor");
     L = (cholmod_factor *) PyCapsule_GetPointer(F, descr);
-#else
-    if (!PyCObject_Check(F)) err_CO("F");
-    descr = PyCObject_GetDesc(F);
-    if (!descr || strncmp(descr, "CHOLMOD FACTOR", 14))
-        PY_ERR_TYPE("F is not a CHOLMOD factor");
-    L = (cholmod_factor *) PyCObject_AsVoidPtr(F);
-#endif
+
 
     /* Check factorization */
     if (L->xtype == CHOLMOD_PATTERN  || L->minor<L->n || !L->is_ll
@@ -1024,28 +924,17 @@ static PyObject* getfactor(PyObject *self, PyObject *args)
     PyObject *F;
     cholmod_factor *Lf;
     cholmod_sparse *Ls;
-#if PY_MAJOR_VERSION >= 3
     const char *descr;
-#else
-    char *descr;
-#endif
+
 
     if (!set_options()) return NULL;
     if (!PyArg_ParseTuple(args, "O", &F)) return NULL;
 
-#if PY_MAJOR_VERSION >= 3
     if (!PyCapsule_CheckExact(F) || !(descr = PyCapsule_GetName(F)))
         err_CO("F");
     if (strncmp(descr, "CHOLMOD FACTOR", 14))
         PY_ERR_TYPE("F is not a CHOLMOD factor");
     Lf = (cholmod_factor *) PyCapsule_GetPointer(F, descr);
-#else
-    if (!PyCObject_Check(F)) err_CO("F");
-    descr = PyCObject_GetDesc(F);
-    if (!descr || strncmp(descr, "CHOLMOD FACTOR", 14))
-        PY_ERR_TYPE("F is not a CHOLMOD factor");
-    Lf = (cholmod_factor *) PyCObject_AsVoidPtr(F);
-#endif
 
     /* Check factorization */
     if (Lf->xtype == CHOLMOD_PATTERN)
@@ -1089,8 +978,6 @@ static PyMethodDef cholmod_functions[] = {
   {NULL}  /* Sentinel */
 };
 
-#if PY_MAJOR_VERSION >= 3
-
 static PyModuleDef cholmod_module_def = {
     PyModuleDef_HEAD_INIT,
     "cholmod",
@@ -1110,14 +997,3 @@ PyMODINIT_FUNC PyInit_cholmod(void)
     return cholmod_module;
 }
 
-#else
-
-PyMODINIT_FUNC initcholmod(void)
-{
-    CHOL(start) (&Common);
-    cholmod_module = Py_InitModule3("kvxopt.cholmod", cholmod_functions,
-        cholmod__doc__);
-    PyModule_AddObject(cholmod_module, "options", PyDict_New());
-    if (import_kvxopt() < 0) return;
-}
-#endif
