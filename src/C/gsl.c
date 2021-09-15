@@ -36,6 +36,24 @@ static unsigned long seed = 0;
 static const gsl_rng_type *rng_type;
 static gsl_rng *rng;
 
+#define CHECK_INPUT_AND_GSL_SETUP {                                            \
+    if ((nrows < 0) || (ncols < 0))                                            \
+    {                                                                          \
+      PyErr_SetString(PyExc_TypeError, "dimensions must be non-negative");     \
+      return NULL;                                                             \
+    }                                                                          \
+                                                                               \
+    if (!(obj = Matrix_New(nrows, ncols, DOUBLE)))                             \
+      return NULL;                                                             \
+                                                                               \
+    gsl_rng_env_setup();                                                       \
+    rng_type = gsl_rng_default;                                                \
+    rng = gsl_rng_alloc(rng_type);                                             \
+    gsl_rng_set(rng, seed);                                                    \
+}
+
+
+
 static char doc_getseed[] =
   "Returns the seed value for the random number generator.\n\n"
   "getseed()";
@@ -95,18 +113,7 @@ normal(PyObject *self, PyObject *args, PyObject *kwrds)
 
   if (s < 0.0) PY_ERR(PyExc_ValueError, "std must be non-negative");
 
-  if ((nrows<0) || (ncols<0)) {
-    PyErr_SetString(PyExc_TypeError, "dimensions must be non-negative");
-    return NULL;
-  }
-
-  if (!(obj = Matrix_New(nrows, ncols, DOUBLE)))
-    return NULL;
-
-  gsl_rng_env_setup();
-  rng_type = gsl_rng_default;
-  rng = gsl_rng_alloc (rng_type);
-  gsl_rng_set(rng, seed);
+  CHECK_INPUT_AND_GSL_SETUP;
 
   for (i = 0; i < nrows*ncols; i++)
     MAT_BUFD(obj)[i] = gsl_ran_gaussian (rng, s) + m;
@@ -144,16 +151,7 @@ uniform(PyObject *self, PyObject *args, PyObject *kwrds)
 
   if (a>b) PY_ERR(PyExc_ValueError, "a must be less than b");
 
-  if ((nrows<0) || (ncols<0))
-    PY_ERR_TYPE("dimensions must be non-negative");
-
-  if (!(obj = (matrix *)Matrix_New(nrows, ncols, DOUBLE)))
-    return NULL;
-
-  gsl_rng_env_setup();
-  rng_type = gsl_rng_default;
-  rng = gsl_rng_alloc (rng_type);
-  gsl_rng_set(rng, seed);
+  CHECK_INPUT_AND_GSL_SETUP;
 
   for (i= 0; i < nrows*ncols; i++)
     MAT_BUFD(obj)[i] = gsl_ran_flat (rng, a, b);
@@ -164,14 +162,53 @@ uniform(PyObject *self, PyObject *args, PyObject *kwrds)
   return (PyObject *)obj;
 }
 
-static PyMethodDef gsl_functions[] = {
-{"getseed", (PyCFunction)getseed, METH_VARARGS|METH_KEYWORDS, doc_getseed},
-{"setseed", (PyCFunction)setseed, METH_VARARGS|METH_KEYWORDS, doc_setseed},
-{"normal", (PyCFunction)normal, METH_VARARGS|METH_KEYWORDS, doc_normal},
-{"uniform", (PyCFunction)uniform, METH_VARARGS|METH_KEYWORDS, doc_uniform},
-{NULL}  /* Sentinel */
-};
+static char doc_weibull[] =
+    "Randomly generates a matrix with Weibull distributed entries.\n\n"
+    "weibull(nrows, ncols=1, a=1, b=1)\n\n"
+    "PURPOSE\n"
+    "Returns a matrix with typecode 'd' and size nrows by ncols, with\n"
+    "its entries randomly generated from a weibull distribution.\n\n"
+    "ARGUMENTS\n"
+    "nrows     number of rows\n\n"
+    "ncols     number of columns\n\n"
+    "a         scale parameter\n\n"
+    "b         shape parameter";
 
+static PyObject *
+weibull(PyObject *self, PyObject *args, PyObject *kwrds)
+{
+  matrix *obj;
+  int i, nrows, ncols = 1;
+  double a = 1, b = 1;
+
+  char *kwlist[] = {"nrows", "ncols", "a", "b", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, kwrds, "i|idd", kwlist,
+                                   &nrows, &ncols, &a, &b))
+    return NULL;
+
+  if (a > b)
+    PY_ERR(PyExc_ValueError, "a must be less than b");
+
+  CHECK_INPUT_AND_GSL_SETUP;
+
+  for (i = 0; i < nrows * ncols; i++)
+    MAT_BUFD(obj)[i] = gsl_ran_weibull(rng, a, b);
+
+  seed = gsl_rng_get(rng);
+  gsl_rng_free(rng);
+
+  return (PyObject *)obj;
+}
+
+static PyMethodDef gsl_functions[] = {
+    {"getseed", (PyCFunction)getseed, METH_VARARGS | METH_KEYWORDS, doc_getseed},
+    {"setseed", (PyCFunction)setseed, METH_VARARGS | METH_KEYWORDS, doc_setseed},
+    {"normal", (PyCFunction)normal, METH_VARARGS | METH_KEYWORDS, doc_normal},
+    {"uniform", (PyCFunction)uniform, METH_VARARGS | METH_KEYWORDS, doc_uniform},
+    {"weibull", (PyCFunction)weibull, METH_VARARGS | METH_KEYWORDS, doc_weibull},
+    {NULL} /* Sentinel */
+};
 
 static PyModuleDef gsl_module = {
     PyModuleDef_HEAD_INIT,
