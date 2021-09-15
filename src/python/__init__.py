@@ -117,6 +117,37 @@ def uniform(nrows, ncols=1, a=0, b=1):
 
     return gsl.uniform(nrows, ncols, a, b)
 
+
+def weibull(nrows, ncols=1, a=1, b=1):
+    '''
+    Randomly generates a matrix with weibull distributed entries.
+    
+    weibull(nrows, ncols=1, a=1, b=1)
+
+    PURPOSE
+    Returns a matrix with typecode 'd' and size nrows by ncols, with
+    its entries randomly generated from a weibull distribution.
+
+    ARGUMENTS
+    nrows     number of rows
+
+    ncols     number of columns
+
+    a         scale parameter
+
+    b         shape parameter
+    '''
+
+    try:
+        from kvxopt import gsl
+    except:
+        from kvxopt.base import matrix
+        from random import weibullvariate
+        return matrix([weibullvariate(a, b) for k in range(nrows*ncols)],
+                      (nrows, ncols), 'd')
+
+    return gsl.weibull(nrows, ncols, a, b)
+
 def setseed(val = 0):
     ''' 
     Sets the seed value for the random number generator.

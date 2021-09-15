@@ -9,3 +9,6 @@ doc/build*
 *.so
 *.bat
 .vscode*
+compile_linux.sh
+compile_macos.sh
+gurobi_kvxopt.log
