@@ -1,10 +1,12 @@
+# -*- coding: utf-8 -*-
+# @Author: Uriel Sandoval
+# @Date:   2021-09-20 08:53:47
+# @Last Modified by:   Uriel Sandoval
+# @Last Modified time: 2021-09-20 10:24:22
 from setuptools import setup, Extension
 from glob import glob
 import os, sys
-import platform
 import versioneer
-from os import path
-from distutils.file_util import copy_file
 
 # Modifiy this if BLAS and LAPACK libraries are not in /usr/lib.
 BLAS_LIB_DIR = '/usr/lib'
@@ -77,7 +79,7 @@ DSDP_LIB_DIR = '/usr/lib'
 # Directory containing dsdp5.h (used only when BUILD_DSDP = 1).
 DSDP_INC_DIR = '/usr/include/dsdp'
 
-# Guess {package}_LIB_DIR and {package}_INC_DIR
+# Guess SUITESPARSE_LIB_DIR and SUITESPARSE_INC_DIR
 if sys.platform.startswith("darwin"):
     # macOS
     SUITESPARSE_LIB_DIR = '/usr/local/lib'
@@ -96,7 +98,12 @@ else:
         SUITESPARSE_LIB_DIR = '/usr/lib'
         SUITESPARSE_INC_DIR = '/usr/include'
 
-
+if sys.platform.startswith("win"):
+    GSL_MACROS = [('GSL_DLL',''),('WIN32','')]
+    FFTW_MACROS = [('FFTW_DLL',''),('FFTW_NO_Complex','')]
+else:
+    GSL_MACROS = []
+    FFTW_MACROS = []
 
 # Directory containing SuiteSparse source
 SUITESPARSE_SRC_DIR = ''
@@ -129,6 +136,13 @@ if type(FFTW_LIB) is str: FFTW_LIB = FFTW_LIB.strip().split(';')
 BUILD_GLPK = int(os.environ.get("KVXOPT_BUILD_GLPK",BUILD_GLPK))
 GLPK_LIB_DIR = os.environ.get("KVXOPT_GLPK_LIB_DIR",GLPK_LIB_DIR)
 GLPK_INC_DIR = os.environ.get("KVXOPT_GLPK_INC_DIR",GLPK_INC_DIR)
+BUILD_DSDP = int(os.environ.get("KVXOPT_BUILD_DSDP",BUILD_DSDP))
+DSDP_LIB_DIR = os.environ.get("KVXOPT_DSDP_LIB_DIR",DSDP_LIB_DIR)
+DSDP_INC_DIR = os.environ.get("KVXOPT_DSDP_INC_DIR",DSDP_INC_DIR)
+SUITESPARSE_LIB_DIR = os.environ.get("KVXOPT_SUITESPARSE_LIB_DIR",SUITESPARSE_LIB_DIR)
+SUITESPARSE_INC_DIR = os.environ.get("KVXOPT_SUITESPARSE_INC_DIR",SUITESPARSE_INC_DIR)
+SUITESPARSE_SRC_DIR = os.environ.get("KVXOPT_SUITESPARSE_SRC_DIR",SUITESPARSE_SRC_DIR)
+SUITESPARSE_CONFIG = os.environ.get("KVXOPT_SUITESPARSE_CONFIG",SUITESPARSE_CONFIG) == True
 BUILD_OSQP = int(os.environ.get("KVXOPT_BUILD_OSQP",BUILD_OSQP))
 OSQP_LIB_DIR = os.environ.get("KVXOPT_OSQP_LIB_DIR",OSQP_LIB_DIR)
 OSQP_INC_DIR = os.environ.get("KVXOPT_OSQP_INC_DIR",OSQP_INC_DIR)
@@ -137,15 +151,11 @@ GRB_LIB_DIR = os.environ.get("KVXOPT_GRB_LIB_DIR", GRB_LIB_DIR)
 GRB_INC_DIR = os.environ.get("KVXOPT_GRB_INC_DIR", GRB_INC_DIR)
 GRB_LIB = os.environ.get("KVXOPT_GRB_LIB",GRB_LIB)
 if type(GRB_LIB) is str: GRB_LIB = GRB_LIB.strip().split(';')
-BUILD_DSDP = int(os.environ.get("KVXOPT_BUILD_DSDP",BUILD_DSDP))
-DSDP_LIB_DIR = os.environ.get("KVXOPT_DSDP_LIB_DIR",DSDP_LIB_DIR)
-DSDP_INC_DIR = os.environ.get("KVXOPT_DSDP_INC_DIR",DSDP_INC_DIR)
-SUITESPARSE_LIB_DIR = os.environ.get("KVXOPT_SUITESPARSE_LIB_DIR",SUITESPARSE_LIB_DIR)
-SUITESPARSE_INC_DIR = os.environ.get("KVXOPT_SUITESPARSE_INC_DIR",SUITESPARSE_INC_DIR)
-SUITESPARSE_SRC_DIR = os.environ.get("KVXOPT_SUITESPARSE_SRC_DIR",SUITESPARSE_SRC_DIR)
-SUITESPARSE_CONFIG = os.environ.get("KVXOPT_SUITESPARSE_CONFIG",SUITESPARSE_CONFIG) == True
 MSVC = int(os.environ.get("KVXOPT_MSVC",MSVC)) == True
-INSTALL_REQUIRES = os.environ.get("KVXOPT_INSTALL_REQUIRES",[])
+PYTHON_REQUIRES = (
+    '>=3.5, !=3.0.*, !=3.1.*, '
+    '!=3.2.*, !=3.3.*, !=3.4.*')
+INSTALL_REQUIRES = os.environ.get("CVXOPT_INSTALL_REQUIRES",[])
 if type(INSTALL_REQUIRES) is str: INSTALL_REQUIRES = INSTALL_REQUIRES.strip().split(';')
 
 RT_LIB = ["rt"] if sys.platform.startswith("linux") else []
@@ -164,29 +174,14 @@ SUITESPARSE_CONF_LIB = ([], ['suitesparseconfig'])[SUITESPARSE_CONFIG]
 MACROS = []
 if BLAS_NOUNDERSCORES: MACROS.append(('BLAS_NO_UNDERSCORE',''))
 
-if platform.architecture() == ('64bit', 'WindowsPE') and not MSVC:
-    MACROS += [('MS_WIN64', 1)]
-
-
-if sys.platform.startswith("win"):
-    GSL_MACROS = [('GSL_DLL',''),('WIN32','')]
-    GSL_LIBS = ['gsl', 'gslcblas']
-    GSL_EXTRA_LINK_ARGS = []
-    FFTW_MACROS = [('FFTW_DLL',''),('FFTW_NO_Complex','')]
-else:
-    GSL_MACROS = []
-    GSL_LIBS = M_LIB + ['gsl'] + BLAS_LIB
-    GSL_EXTRA_LINK_ARGS = BLAS_EXTRA_LINK_ARGS
-    FFTW_MACROS = []
-
 # optional modules
 
 if BUILD_GSL:
-    gsl = Extension('gsl', libraries = GSL_LIBS,
+    gsl = Extension('gsl', libraries = M_LIB + ['gsl'] + BLAS_LIB,
         include_dirs = [ GSL_INC_DIR ],
-        library_dirs = [ GSL_LIB_DIR ],
-        define_macros = MACROS + GSL_MACROS,
-        extra_link_args = GSL_EXTRA_LINK_ARGS,
+        library_dirs = [ GSL_LIB_DIR, BLAS_LIB_DIR ],
+        define_macros = GSL_MACROS,
+        extra_link_args = BLAS_EXTRA_LINK_ARGS,
         sources = ['src/C/gsl.c'] )
     extmods += [gsl];
 
@@ -194,7 +189,7 @@ if BUILD_FFTW:
     fftw = Extension('fftw', libraries = FFTW_LIB + BLAS_LIB,
         include_dirs = [ FFTW_INC_DIR ],
         library_dirs = [ FFTW_LIB_DIR, BLAS_LIB_DIR ],
-        define_macros = MACROS + FFTW_MACROS,
+        define_macros = FFTW_MACROS,
         extra_link_args = BLAS_EXTRA_LINK_ARGS,
         sources = ['src/C/fftw.c'] )
     extmods += [fftw];
@@ -203,7 +198,6 @@ if BUILD_GLPK:
     glpk = Extension('glpk', libraries = ['glpk'],
         include_dirs = [ GLPK_INC_DIR ],
         library_dirs = [ GLPK_LIB_DIR ],
-        define_macros = MACROS,
         sources = ['src/C/glpk.c'] )
     extmods += [glpk];
 
@@ -228,7 +222,6 @@ if BUILD_DSDP:
         include_dirs = [ DSDP_INC_DIR ],
         library_dirs = [ DSDP_LIB_DIR, BLAS_LIB_DIR ],
         extra_link_args = BLAS_EXTRA_LINK_ARGS,
-        define_macros = MACROS,
         sources = ['src/C/dsdp.c'] )
     extmods += [dsdp];
 
@@ -256,7 +249,6 @@ if not SUITESPARSE_SRC_DIR:
     umfpack = Extension('umfpack',
         libraries = ['umfpack','cholmod','amd','colamd'] + SUITESPARSE_CONF_LIB + LAPACK_LIB + BLAS_LIB + RT_LIB,
         include_dirs = [SUITESPARSE_INC_DIR],
-        define_macros = MACROS,
         library_dirs = [SUITESPARSE_LIB_DIR, BLAS_LIB_DIR],
         sources = ['src/C/umfpack.c'])
 else:
@@ -309,7 +301,6 @@ if not SUITESPARSE_SRC_DIR:
     cholmod = Extension('cholmod',
         libraries = ['cholmod','colamd','amd'] + SUITESPARSE_CONF_LIB + LAPACK_LIB + BLAS_LIB + RT_LIB,
         include_dirs = [SUITESPARSE_INC_DIR],
-        define_macros = MACROS,
         library_dirs = [SUITESPARSE_LIB_DIR, BLAS_LIB_DIR],
         sources = [ 'src/C/cholmod.c' ])
 else:
@@ -336,7 +327,6 @@ if not SUITESPARSE_SRC_DIR:
     amd = Extension('amd',
         libraries = ['amd'] + SUITESPARSE_CONF_LIB + RT_LIB,
         include_dirs = [SUITESPARSE_INC_DIR],
-        define_macros = MACROS,
         library_dirs = [SUITESPARSE_LIB_DIR],
         sources = ['src/C/amd.c'])
 else:
