@@ -1,4 +1,5 @@
 import unittest
+from unittest.case import SkipTest
 
 class TestGUROBI(unittest.TestCase):
 
@@ -11,7 +12,7 @@ class TestGUROBI(unittest.TestCase):
             A = sparse(matrix([1.0,1.0],(1,2)))
             b = matrix(1.0)
             self._prob_data = (c,G,h,A,b)
-            self.opts = {}
+            self.opts = {'QCPDual': 0}
 
         except ImportError:
             self.skipTest("GUROBI not available")
@@ -21,10 +22,10 @@ class TestGUROBI(unittest.TestCase):
         for u,v in zip(L1,L2): self.assertAlmostEqual(u,v,places, msg=msg)
 
 
-
     def test_lp(self):
         from kvxopt import solvers, gurobi
         c,G,h,A,b = self._prob_data
+        
         sol1 = solvers.lp(c,G,h)
         self.assertTrue(sol1['status']=='optimal')
         sol2 = solvers.lp(c,G,h, solver='gurobi', options={'gurobi': self.opts})
@@ -42,13 +43,44 @@ class TestGUROBI(unittest.TestCase):
         self.assertAlmostEqualLists(list(sol3['z']), list(sol4['z']), 2)
         self.assertAlmostEqualLists(list(sol3['y']), list(sol4['y']), 2)
 
-        # sol5 = gurobi.qp(c,G,h, options=self.opts)
-        # self.assertTrue(sol5[0]=='solved')
-        # sol6 = gurobi.qp(c,G,h,A,b, options=self.opts)
-        # self.assertTrue(sol6[0]=='solved')
-        # sol7 = gurobi.qp(c,G,h,None,None, options=self.opts)
-        # self.assertTrue(sol7[0]=='solved')
+        sol5 = gurobi.qp(c,G,h, options=self.opts)
+        self.assertTrue(sol5[0]=='optimal')
+        sol6 = gurobi.qp(c,G,h,A,b, options=self.opts)
+        self.assertTrue(sol6[0]=='optimal')
+        sol7 = gurobi.qp(c,G,h,None,None, options=self.opts)
+        self.assertTrue(sol7[0]=='optimal')
 
+    def test_qp(self):
+
+        from kvxopt import solvers, gurobi, spmatrix, sparse, matrix
+        # Example from OSQP
+        q = matrix([1., 1.])
+        P = sparse(matrix([[4, 1], 
+                           [1, 2]]))
+        print(P)
+        G = sparse(matrix([[1., 1, 0, -1, -1,  0],
+                           [1., 0, 1, -1,  0, -1]]))
+        h = matrix([1, 0.7, 0.7, -1, 0, 0])
+
+        x = [0.3, 0.7]
+        y = []
+        z = [0, 0, 0.2, 2.9, 0, 0]
+        obj = 1.88
+
+
+        sol1 = solvers.qp(P, q, G, h, solver='gurobi',
+                          options={'gurobi': self.opts})
+        self.assertTrue(sol1['status'] == 'optimal')
+        self.assertAlmostEqualLists(list(sol1['x']), x, 4)
+        self.assertAlmostEqualLists(list(sol1['y']), y, 4)
+        self.assertAlmostEqualLists(list(sol1['z']), z, 4)
+        self.assertAlmostEqual(sol1['primal objective'], obj, 5)
+
+        sol2 = gurobi.qp(q, G, h, P=P, options=self.opts)
+        self.assertTrue(sol2[0] == 'optimal')
+        self.assertAlmostEqualLists(list(sol2[1]), x, 4)
+        self.assertAlmostEqualLists(list(sol2[2]), z, 4)
+        self.assertAlmostEqualLists(list(sol2[3]), y, 4)
 
 
 if __name__ == '__main__':

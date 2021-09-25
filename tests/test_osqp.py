@@ -63,7 +63,7 @@ class TestOSQP(unittest.TestCase):
         from kvxopt import solvers, osqp, spmatrix, sparse, matrix
         # Example from OSQP
         q = matrix([1., 1.])
-        P = sparse(matrix([[4, 1], [0, 2]]))
+        P = sparse(matrix([[4, 1], [1, 2]]))
         G = sparse(matrix([[1., 1, 0, -1, -1,  0],
                            [1., 0, 1, -1,  0, -1]]))
         h = matrix([1, 0.7, 0.7, -1, 0, 0])
