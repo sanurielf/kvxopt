@@ -107,7 +107,7 @@ void print_vec2(c_float *v, c_int n, const char *name) {
 }
 
 
-static PyObject *resize_problem(spmatrix *P, spmatrix *G, matrix *h,
+static PyObject *resize_problem(spmatrix *G, matrix *h,
                                 spmatrix *A, matrix *b) {
 
 
@@ -129,33 +129,21 @@ static PyObject *resize_problem(spmatrix *P, spmatrix *G, matrix *h,
     PyObject *res;
     spmatrix *Anew, *Pt = NULL;
     matrix *l, *u;
-    int_t k, i, j, m, n, nnz, p;
+    int_t k, i, j, m, n, nnz;
 
-    /* We transpose the matrix since CVXOPT formulation receives the
-         * matrix in a lower triangular form. OSQP needs it in upper triangular */
-
-    if (P)
-        if (!(Pt = SpMatrix_Trans(P)))
-            return NULL;
-
-
-    if (A)
-        p = SP_NROWS(A);
-    else
-        p = 0;
 
 
     n = SP_NCOLS(G);
-    m = SP_NROWS(G) + (p > 0 ? SP_NROWS(A) : 0);
-    nnz = SP_NNZ(G) + (p > 0 ? SP_NNZ(A) : 0);
-    if (p > 0) {
+    m = SP_NROWS(G) + SP_NROWS(A);
+    nnz = SP_NNZ(G) + SP_NNZ(A);
+    if (SP_NNZ(A)) {
         if (!(Anew = SpMatrix_New(m, n, nnz, DOUBLE)))
             return NULL;
     }
 
     k = 0;
 
-    if (p > 0) {
+    if (SP_NNZ(A)) {
         for (j = 0; j < SP_NCOLS(G); j++) {
             for (i = SP_COL(G)[j]; i < SP_COL(G)[j + 1]; k++, i++) {
                 SP_ROW(Anew)[k] = SP_ROW(G)[i];
@@ -177,10 +165,8 @@ static PyObject *resize_problem(spmatrix *P, spmatrix *G, matrix *h,
     u = Matrix_New(m, 1, DOUBLE);
 
     if (!l || !u) {
-        if (p > 0)
+        if (SP_NNZ(A))
             Py_DECREF(Anew);
-        if (Pt)
-            Py_DECREF(Pt);
         return NULL;
     }
 
@@ -192,16 +178,15 @@ static PyObject *resize_problem(spmatrix *P, spmatrix *G, matrix *h,
     for (j = 0, i = SP_NROWS(G); i < m; i++, j++)
         MAT_BUFD(l)[i] = MAT_BUFD(u)[i] = MAT_BUFD(b)[j];
 
-    if (!(res = PyTuple_New(4))) {
-        Py_DECREF(Anew);
+    if (!(res = PyTuple_New(3))) {
+        if (SP_NNZ(A))
+            Py_DECREF(Anew);
         Py_DECREF(l);
         Py_DECREF(u);
-        if (Pt)
-            Py_DECREF(Pt);
         return NULL;
     }
 
-    if (p > 0)
+    if (SP_NNZ(A))
         PyTuple_SET_ITEM(res, 0, (PyObject *) Anew);
     else {
         Py_INCREF(Py_None);
@@ -212,20 +197,13 @@ static PyObject *resize_problem(spmatrix *P, spmatrix *G, matrix *h,
     PyTuple_SET_ITEM(res, 2, (PyObject *) u);
 
 
-    if (Pt)
-        PyTuple_SET_ITEM(res, 3, (PyObject *) Pt);
-    else {
-        Py_INCREF(Py_None);
-        PyTuple_SET_ITEM(res, 3, (PyObject *) Py_None);
-    }
-
 
     return res;
 
 }
 
-static PyObject *solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
-                               matrix *u, PyObject *opts) {
+static int solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
+                               matrix *u, PyObject *opts, PyObject **res) {
     /* Solve a QP/LP problem in the following form:
 
     minimize     (1/2) * x' P x + q' x
@@ -233,22 +211,26 @@ static PyObject *solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
     subject to      l <= A x <= u
     */
 
-    PyObject *res, *key, *value;
+    PyObject *key, *value;
     matrix *x, *z;
     int_t i, exitflag, pos = 0;
     char msg[100];
+    int error = 0;
 
-    OSQPWorkspace *work;
-    OSQPSettings  *settings;
-    OSQPData      *data;
+    OSQPWorkspace *work = NULL;
+    OSQPSettings  *settings = NULL;
+    OSQPData      *data = NULL;
+    csc *Porig;
 
 
-    if (!(settings = (OSQPSettings *)c_malloc(sizeof(OSQPSettings))))
-        return NULL;
-
+    if (!(settings = (OSQPSettings *)c_malloc(sizeof(OSQPSettings)))) {
+        error = 100;
+        goto CLEAN;
+    }
     if (!(data = (OSQPData *)c_malloc(sizeof(OSQPData)))) {
         c_free(settings);
-        return NULL;
+        error = 100;
+        goto CLEAN;
     }
 
     /* Here we detect if any user defined options are available through
@@ -262,7 +244,8 @@ static PyObject *solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
         c_free(settings);
         PyErr_SetString(PyExc_AttributeError,
             "missing osqp.options dictionary");
-        return NULL;
+        error = 1;
+        goto CLEAN;
     }
 
     osqp_set_default_settings(settings);
@@ -309,9 +292,13 @@ static PyObject *solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
     data->u = MAT_BUFD(u);
 
 
-    if (P != NULL && (PyObject *) P != Py_None)
-        data->P = csc_matrix(data->n, data->n, SP_NNZ(P), (c_float *) SP_VALD(P),
+    if (P != NULL && (PyObject *) P != Py_None) {
+        Porig = csc_matrix(data->n, data->n, SP_NNZ(P), (c_float *) SP_VALD(P),
                              (c_int *)SP_ROW(P), (c_int *)SP_COL(P));
+        data->P = csc_to_triu(Porig);
+        //print_csc_matrix2(Porig, "Porig");
+        //print_csc_matrix2(data->P, "P");
+    }
     else {
         data->P = csc_spalloc(data->n, data->n, 0, 0, 0);
         for (i = 0; i < data->n + 1; i++)
@@ -319,7 +306,6 @@ static PyObject *solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
     }
 
     data->q = MAT_BUFD(q);
-
 
     //print_csc_matrix2(data->P, "P");
     //print_vec2(data->q, data->n, "q");
@@ -329,19 +315,24 @@ static PyObject *solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
     //print_vec2(data->u, data->m, "u");
 
     // Setup workspace
-    exitflag = osqp_setup(&work, data, settings);
-
-    //if (exitflag) 
+    // Release the GIL
+    Py_BEGIN_ALLOW_THREADS;
+    if ((exitflag = osqp_setup(&work, data, settings))){
+        error = exitflag;
+        goto CLEAN;
+    }
+    Py_END_ALLOW_THREADS;
+    // if (exitflag)
 
     // Solve Problem
     Py_BEGIN_ALLOW_THREADS;
-    exitflag = osqp_solve(work);
+    if ((exitflag = osqp_solve(work))){
+        error = exitflag;
+        goto CLEAN;
+    }
     Py_END_ALLOW_THREADS;
 
-    if (P)
-        c_free(data->P);
-    else
-        csc_spfree(data->P);
+    csc_spfree(data->P);
 
 
     x = Matrix_New(data->n, 1, DOUBLE);
@@ -354,9 +345,9 @@ static PyObject *solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
         c_free(data);
         c_free(settings);
         osqp_cleanup(work);
-        return NULL;
+        error = 100;
+        goto CLEAN;
     }
-
 
     if (work->info->status_val == OSQP_SOLVED ||
             work->info->status_val == OSQP_SOLVED_INACCURATE) {
@@ -381,25 +372,27 @@ static PyObject *solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
 
     }
 
-    if (!(res = PyTuple_New(3))) {
+    if (!(*res = PyTuple_New(3))) {
 
         c_free(data);
         c_free(settings);
         osqp_cleanup(work);
-        return NULL;
+        error = 100;
+        goto CLEAN;
     }
 
-    PyTuple_SET_ITEM(res, 0, (PyObject *) PYSTRING_FROMSTRING(work->info->status));
-    PyTuple_SET_ITEM(res, 1, (PyObject *) x);
-    PyTuple_SET_ITEM(res, 2, (PyObject *) z);
+    PyTuple_SET_ITEM(*res, 0, (PyObject *) PYSTRING_FROMSTRING(work->info->status));
+    PyTuple_SET_ITEM(*res, 1, (PyObject *) x);
+    PyTuple_SET_ITEM(*res, 2, (PyObject *) z);
 
 
+CLEAN:
     c_free(data);
     c_free(settings);
     osqp_cleanup(work);
 
 
-    return res;
+    return error;
 
 }
 
@@ -411,7 +404,7 @@ static PyObject *solve(PyObject *self, PyObject *args, PyObject *kwargs) {
     matrix *q, *u, *l;
     spmatrix *P = NULL, *A;
     PyObject *opts = NULL, *res = NULL;
-    int_t m, n;
+    int_t m, n, error;
 
     char *kwlist[] = {"q", "A", "l", "u", "P", "options", NULL};
 
@@ -464,10 +457,12 @@ static PyObject *solve(PyObject *self, PyObject *args, PyObject *kwargs) {
     }
 
 
-    res = solve_problem(P, q, A, l, u, opts);
+    error = solve_problem(P, q, A, l, u, opts, &res);
 
-    if (!res)
+    if (error == 100)
         return PyErr_NoMemory();
+    else if (error)
+        return NULL;
 
     return res;
 
@@ -484,10 +479,10 @@ static char doc_qp[] =
 static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     matrix *q, *h, *b = NULL, *l = NULL, *u = NULL, *x, *z, *y, *z1;
-    spmatrix *P = NULL, *G, *A = NULL, *Pt = NULL, *Anew = NULL;
+    spmatrix *P = NULL, *G, *A = NULL, *Anew = NULL;
     PyObject *opts = NULL, *res = NULL, *res_osqp = NULL, *resized = NULL,
               *status;
-    int_t m, n, p;
+    int_t m, n, p, error = 0;
 
 
     char *kwlist[] = {"q", "G", "h", "A", "b", "P", "options", NULL};
@@ -520,9 +515,11 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs) {
         return NULL;
     }
 
-    if ((PyObject *) A == Py_None)
-        A = NULL;
-    if (A) {
+    if ((PyObject *) A == Py_None || A == NULL){
+        p = 0;
+        A = SpMatrix_New(p, n, 0, DOUBLE);
+    }
+    else {
         if (!(SpMatrix_Check(A) && SP_ID(A) == DOUBLE)) {
             PyErr_SetString(PyExc_ValueError, "A must be a sparse 'd' matrix");
             return NULL;
@@ -533,11 +530,14 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs) {
             PyErr_SetString(PyExc_ValueError, "incompatible dimensions");
             return NULL;
         }
+        Py_INCREF(A);
+    }
+
+    if ((PyObject *) b == Py_None || b == NULL) {
+        b = Matrix_New(0, 1, DOUBLE);
     }
     else
-        p = 0;
-
-    if ((PyObject *) b == Py_None) b = NULL;
+        Py_INCREF(b);
     if (b && (!Matrix_Check(b) || b->id != DOUBLE))
         err_dbl_mtrx("b");
     if ((b && (b->nrows != p || b->ncols != 1)) || (!b && p != 0 )) {
@@ -545,9 +545,10 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs) {
         return NULL;
     }
 
-    if ((PyObject *) P == Py_None)
-        P = NULL;
-    if (P) {
+    if ((PyObject *) P == Py_None || P == NULL)
+        P = SpMatrix_New(n, n, 0, DOUBLE);
+    else {
+        
         if (!(SpMatrix_Check(P) && SP_ID(P) == DOUBLE)) {
             PyErr_SetString(PyExc_ValueError, "P must be a sparse 'd' matrix");
             return NULL;
@@ -562,28 +563,32 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs) {
             PyErr_SetString(PyExc_ValueError, "incompatible dimensions");
             return NULL;
         }
-
+        Py_INCREF(P);
     }
 
 
-    if (!(resized = resize_problem(P, G, h, A, b)))
+    if (!(resized = resize_problem(G, h, A, b)))
         return PyErr_NoMemory();
     
 
     Anew = (spmatrix *) PyTuple_GET_ITEM(resized, 0);
     l = (matrix *) PyTuple_GET_ITEM(resized, 1);
     u = (matrix *) PyTuple_GET_ITEM(resized, 2);
-    Pt = (spmatrix *) PyTuple_GET_ITEM(resized, 3);
 
 
-    res_osqp = solve_problem(Pt, q, p > 0 ? Anew : G, l, u, opts);
+    error = solve_problem(P, q, p > 0 ? Anew : G, l, u, opts, &res_osqp);
 
 
     Py_DECREF(resized);
+    Py_DECREF(A);
+    Py_DECREF(b);
+    Py_DECREF(P);
 
 
-    if (!res_osqp)
+    if (error == 100)
         return PyErr_NoMemory();
+    else if (error)
+        return NULL;
 
     if (!(res = PyTuple_New(4)))
         return PyErr_NoMemory();
@@ -596,7 +601,6 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs) {
     Py_INCREF(z);
 
     Py_DECREF(res_osqp);
-
 
 
     y = (matrix *) Matrix_New(p, 1, DOUBLE);

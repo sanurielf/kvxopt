@@ -12,3 +12,6 @@ doc/build*
 compile_linux.sh
 compile_macos.sh
 gurobi_kvxopt.log
+*.pyd
+*.log
+*.lp

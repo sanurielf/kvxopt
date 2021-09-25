@@ -4369,10 +4369,12 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
     options = kwargs.get('options',globals()['options'])
 
     from kvxopt import base, blas
-    from kvxopt.base import matrix, spmatrix
+    from kvxopt.base import matrix, spmatrix, sparse
 
-    if solver in ('mosek', 'osqp'):
+    if solver in ('mosek', 'osqp', 'gurobi'):
         from kvxopt import misc
+
+
 
         if solver == 'mosek':
             try:
@@ -4400,9 +4402,28 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
             if isinstance(A, matrix):
                 A = sparse(A)
 
+            # OSQP read the upper triangular
+            # P = P.T
             opts = options.get('osqp',None)
             solsta, x, z, y = osqp.qp(q, G, h, A, b, P, options=opts)
+        
+        elif solver == 'gurobi':
+            try:
+                from kvxopt import gurobi
+            except ImportError: raise ValueError("invalid option "\
+                "(solver='gurobi'): kvxopt.gurobi is not installed")
 
+
+            if isinstance(G, matrix):
+                G = sparse(G)
+            if isinstance(P, matrix):
+                P = sparse(P)
+            if isinstance(A, matrix):
+                A = sparse(A)
+
+            opts = options.get('gurobi',None)
+            print(P)
+            solsta, x, z, y = gurobi.qp(q, G, h, A, b, P, options=opts)
 
         n = q.size[0]
         if G is None: G = spmatrix([], [], [], (0,n), 'd')
@@ -4415,16 +4436,13 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
         resy0 = max(1.0, blas.nrm2(b))
         resz0 = max(1.0, blas.nrm2(h))
 
-        if ((solver == 'mosek') and  solsta in (mosek.solsta.optimal, getattr(mosek.solsta,'near_optimal',None))) or \
-           ((solver == 'osqp') and  solsta in ('solved',)):
+        if ((solver == 'mosek') and  solsta in (mosek.solsta.optimal, getattr(mosek.solsta,'near_optimal',None))):
 
-            if solver == 'mosek':
-                if solsta is mosek.solsta.optimal:
-                    status = 'optimal'
-                else:
-                    status = 'near optimal'
-            else:
+            if solsta is mosek.solsta.optimal:
                 status = 'optimal'
+            else:
+                status = 'near optimal'
+
 
             s = matrix(h)
             base.gemv(G, x, s, alpha = -1.0, beta = 1.0)
@@ -4521,6 +4539,52 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
             dims = {'l': m, 's': [], 'q': []}
             pslack = -misc.max_step(s, dims)
             dslack = None
+
+        elif ((solver == 'osqp') and solsta in ('solved',)) or \
+            ((solver == 'gurobi') and solsta in ('optimal',)):
+
+            status = 'optimal'
+
+            s = matrix(h)
+            base.gemv(G, x, s, alpha=-1.0, beta=1.0)
+
+            # rx = q + P*x + G'*z + A'*y
+            # pcost = 0.5 * x'*P*x + q'*x
+            rx = matrix(q)
+            base.symv(P, x, rx, beta=1.0)
+            pcost = 0.5 * (blas.dot(x, rx) + blas.dot(x, q))
+            base.gemv(A, y, rx, beta=1.0, trans='T')
+            base.gemv(G, z, rx, beta=1.0, trans='T')
+            resx = blas.nrm2(rx) / resx0
+
+            # ry = A*x - b
+            ry = matrix(b)
+            base.gemv(A, x, ry, alpha=1.0, beta=-1.0)
+            resy = blas.nrm2(ry) / resy0
+
+            # rz = G*x + s - h
+            rz = matrix(0.0, (m, 1))
+            base.gemv(G, x, rz)
+            blas.axpy(s, rz)
+            blas.axpy(h, rz, alpha=-1.0)
+            resz = blas.nrm2(rz) / resz0
+
+            gap = blas.dot(s, z)
+            dcost = pcost + blas.dot(y, ry) + blas.dot(z, rz) - gap
+            if pcost < 0.0:
+                relgap = gap / -pcost
+            elif dcost > 0.0:
+                relgap = gap / dcost
+            else:
+                relgap = None
+
+            dims = {'l': m, 's': [], 'q': []}
+            pslack = -misc.max_step(s, dims)
+            dslack = -misc.max_step(z, dims)
+
+            pres, dres = max(resy, resz), resx
+            pinfres, dinfres = None, None
+
 
         else:
             status = 'unknown'
