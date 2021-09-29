@@ -124,15 +124,18 @@ static PyObject *resize_problem(spmatrix *G, matrix *h, spmatrix *A,
     int_t k, i, j, m, n, nnz;
 
     n = SP_NCOLS(G);
-    m = SP_NROWS(G) + SP_NROWS(A);
-    nnz = SP_NNZ(G) + SP_NNZ(A);
-    if (SP_NNZ(A)) {
-        if (!(Anew = SpMatrix_New(m, n, nnz, DOUBLE))) return NULL;
-    }
+    m = 0;
+    if (G) m += SP_NROWS(G);
+    if (A) m += SP_NROWS(A);
+    nnz = 0;
+    if (G) nnz += SP_NNZ(G);
+    if (A) nnz += SP_NNZ(A);
 
     k = 0;
 
-    if (SP_NNZ(A)) {
+    if (A) {
+        if (!(Anew = SpMatrix_New(m, n, nnz, DOUBLE))) return NULL;
+
         for (j = 0; j < SP_NCOLS(G); j++) {
             for (i = SP_COL(G)[j]; i < SP_COL(G)[j + 1]; k++, i++) {
                 SP_ROW(Anew)[k] = SP_ROW(G)[i];
@@ -154,7 +157,7 @@ static PyObject *resize_problem(spmatrix *G, matrix *h, spmatrix *A,
     u = Matrix_New(m, 1, DOUBLE);
 
     if (!l || !u) {
-        if (SP_NNZ(A)) Py_DECREF(Anew);
+        if (A) Py_DECREF(Anew);
         return NULL;
     }
 
@@ -173,7 +176,7 @@ static PyObject *resize_problem(spmatrix *G, matrix *h, spmatrix *A,
         return NULL;
     }
 
-    if (SP_NNZ(A))
+    if (A)
         PyTuple_SET_ITEM(res, 0, (PyObject *)Anew);
     else {
         Py_INCREF(Py_None);
@@ -194,7 +197,6 @@ static int solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
 
     subject to      l <= A x <= u
     */
-
     PyObject *key, *value;
     matrix *x, *z;
     int_t i, exitflag, pos = 0;
@@ -273,7 +275,7 @@ static int solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
     data->l = MAT_BUFD(l);
     data->u = MAT_BUFD(u);
 
-    if (P != NULL && (PyObject *)P != Py_None) {
+    if (P) {
         Porig = csc_matrix(data->n, data->n, SP_NNZ(P), (c_float *)SP_VALD(P),
                            (c_int *)SP_ROW(P), (c_int *)SP_COL(P));
         data->P = csc_to_triu(Porig);
@@ -313,17 +315,14 @@ static int solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
     Py_END_ALLOW_THREADS;
 
     csc_spfree(data->P);
+    if (P) free(Porig);
 
     x = Matrix_New(data->n, 1, DOUBLE);
     z = Matrix_New(data->m, 1, DOUBLE);
-
     if (!x || !z) {
         Py_XDECREF(x);
         Py_XDECREF(z);
 
-        c_free(data);
-        c_free(settings);
-        osqp_cleanup(work);
         error = 100;
         goto CLEAN;
     }
@@ -349,9 +348,6 @@ static int solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
     }
 
     if (!(*res = PyTuple_New(3))) {
-        c_free(data);
-        c_free(settings);
-        osqp_cleanup(work);
         error = 100;
         goto CLEAN;
     }
@@ -360,6 +356,7 @@ static int solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
                      (PyObject *)PYSTRING_FROMSTRING(work->info->status));
     PyTuple_SET_ITEM(*res, 1, (PyObject *)x);
     PyTuple_SET_ITEM(*res, 2, (PyObject *)z);
+
 
 CLEAN:
     c_free(data);
@@ -446,7 +443,7 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs) {
     spmatrix *P = NULL, *G, *A = NULL, *Anew = NULL;
     PyObject *opts = NULL, *res = NULL, *res_osqp = NULL, *resized = NULL,
              *status;
-    int_t m, n, p, error = 0;
+    int_t m, n, p = 0, error = 0;
 
     char *kwlist[] = {"q", "G", "h", "A", "b", "P", "options", NULL};
 
@@ -473,10 +470,8 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs) {
         return NULL;
     }
 
-    if ((PyObject *)A == Py_None || A == NULL) {
-        p = 0;
-        A = SpMatrix_New(p, n, 0, DOUBLE);
-    } else {
+    if ((PyObject *)A == Py_None) A = NULL;
+    if (A) {
         if (!(SpMatrix_Check(A) && SP_ID(A) == DOUBLE)) {
             PyErr_SetString(PyExc_ValueError, "A must be a sparse 'd' matrix");
             return NULL;
@@ -486,53 +481,53 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs) {
             PyErr_SetString(PyExc_ValueError, "incompatible dimensions");
             return NULL;
         }
-        Py_INCREF(A);
     }
 
-    if ((PyObject *)b == Py_None || b == NULL) {
-        b = Matrix_New(0, 1, DOUBLE);
-    } else
-        Py_INCREF(b);
-    if (b && (!Matrix_Check(b) || b->id != DOUBLE)) err_dbl_mtrx("b");
-    if ((b && (b->nrows != p || b->ncols != 1)) || (!b && p != 0)) {
-        PyErr_SetString(PyExc_ValueError, "incompatible dimensions");
-        return NULL;
+    if ((PyObject *)b == Py_None) b = NULL;
+    if (b) {
+        if (!Matrix_Check(b) || b->id != DOUBLE) err_dbl_mtrx("b");
+        if ((b->nrows != p || b->ncols != 1)) {
+            PyErr_SetString(PyExc_ValueError, "incompatible dimensions");
+            return NULL;
+        }
     }
 
-    if ((PyObject *)P == Py_None || P == NULL)
-        P = SpMatrix_New(n, n, 0, DOUBLE);
-    else {
+    if ((PyObject *)P == Py_None) P = NULL;
+    if (P) {
         if (!(SpMatrix_Check(P) && SP_ID(P) == DOUBLE)) {
             PyErr_SetString(PyExc_ValueError, "P must be a sparse 'd' matrix");
             return NULL;
         }
 
-        if (SP_NCOLS(P) != n) {
-            PyErr_SetString(PyExc_ValueError, "incompatible dimensions");
+        if (SP_NCOLS(P) != n || SP_NROWS(P) != n) {
+            PyErr_SetString(PyExc_ValueError,
+                            "P must be square matrix of n x n");
             return NULL;
         }
-
-        if (SP_NROWS(P) != n) {
-            PyErr_SetString(PyExc_ValueError, "incompatible dimensions");
-            return NULL;
-        }
-        Py_INCREF(P);
     }
 
-    if (!(resized = resize_problem(G, h, A, b))) return PyErr_NoMemory();
-    Py_DECREF(A);
-    Py_DECREF(b);
-    Py_DECREF(P);
-
+    if (!(resized = resize_problem(G, h, A, b))){ 
+        PyErr_NoMemory();
+        return NULL;
+    }
     Anew = (spmatrix *)PyTuple_GET_ITEM(resized, 0);
     l = (matrix *)PyTuple_GET_ITEM(resized, 1);
     u = (matrix *)PyTuple_GET_ITEM(resized, 2);
+    Py_INCREF(Anew);
+    Py_INCREF(l);
+    Py_INCREF(u);
 
-    error = solve_problem(P, q, p > 0 ? Anew : G, l, u, opts, &res_osqp);
+    error = solve_problem(P, q, A ? Anew : G, l, u, opts, &res_osqp);
     Py_DECREF(resized);
 
-    if (error == 100)
-        return PyErr_NoMemory();
+    Py_DECREF(Anew);
+    Py_DECREF(l);
+    Py_DECREF(u);
+
+    if (error == 100) {
+        PyErr_NoMemory();
+        return NULL;
+    }
     else if (error)
         return NULL;
 
@@ -547,14 +542,21 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     Py_DECREF(res_osqp);
 
-    if (!(y = (matrix *)Matrix_New(p, 1, DOUBLE))) return PyErr_NoMemory();
 
     PyTuple_SET_ITEM(res, 0, status);
     PyTuple_SET_ITEM(res, 1, (PyObject *)x);
-    PyTuple_SET_ITEM(res, 3, (PyObject *)y);
+    if (!(y = (matrix *)Matrix_New(p, 1, DOUBLE))) {
+        PyErr_NoMemory();
+        return NULL;
+    }
 
-    if (p > 0) {
-        z1 = (matrix *)Matrix_New(m, 1, DOUBLE);
+    if (A) {
+
+
+        if (!(z1 = (matrix *)Matrix_New(m, 1, DOUBLE))){
+            PyErr_NoMemory();
+            return NULL;
+        }
         memcpy(MAT_BUFD(z1), MAT_BUFD(z), m * sizeof(double));
         memcpy(MAT_BUFD(y), &MAT_BUFD(z)[m], p * sizeof(double));
         Py_DECREF(z);
@@ -562,6 +564,8 @@ static PyObject *qp(PyObject *self, PyObject *args, PyObject *kwargs) {
     } else {
         PyTuple_SET_ITEM(res, 2, (PyObject *)z);
     }
+
+    PyTuple_SET_ITEM(res, 3, (PyObject *)y);
 
     return res;
 }
