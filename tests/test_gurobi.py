@@ -1,5 +1,6 @@
 import unittest
 from unittest.case import SkipTest
+import gc
 
 class TestGUROBI(unittest.TestCase):
 
@@ -21,7 +22,6 @@ class TestGUROBI(unittest.TestCase):
         self.assertEqual(len(L1),len(L2))
         for u,v in zip(L1,L2): self.assertAlmostEqual(u,v,places, msg=msg)
 
-
     def test_lp(self):
         from kvxopt import solvers, gurobi
         c,G,h,A,b = self._prob_data
@@ -42,7 +42,7 @@ class TestGUROBI(unittest.TestCase):
         self.assertAlmostEqualLists(list(sol3['x']), list(sol4['x']), 2)
         self.assertAlmostEqualLists(list(sol3['z']), list(sol4['z']), 2)
         self.assertAlmostEqualLists(list(sol3['y']), list(sol4['y']), 2)
-
+        gc.collect()
         sol5 = gurobi.qp(c,G,h, options=self.opts)
         self.assertTrue(sol5[0]=='optimal')
         sol6 = gurobi.qp(c,G,h,A,b, options=self.opts)
@@ -81,6 +81,32 @@ class TestGUROBI(unittest.TestCase):
         self.assertAlmostEqualLists(list(sol2[1]), x, 4)
         self.assertAlmostEqualLists(list(sol2[2]), z, 4)
         self.assertAlmostEqualLists(list(sol2[3]), y, 4)
+
+    # Test taken from:
+    # https://github.com/oxfordcontrol/osqp-python/blob/master/module/tests/basic_test.py
+    def test_basic_Gurobi_format(self):
+        from kvxopt import solvers, gurobi, spmatrix, sparse, matrix, spdiag
+
+        P = spdiag([11.0, 0])
+        q = matrix([3.0, 4.0])
+        G = sparse([[-1, 0], [0, -1], [-1, -3], [2, 5], [3, 4]]).T
+        G_u = matrix([0., 0., -15, 100, 80])
+        G_l = -1e06 * matrix(1.0, G_u.size)
+        x = [0, 5]
+        y = [1.66666667, 0., 1.33333333, 0., 0.]
+        A = sparse([1.0, 1.0]).T
+        b = matrix([5.0])
+        _y = [0.0, 0., 0.5, 0., 0., 0.]
+
+        (res, x1, y1) = gurobi.solve(q, G_l, G, G_u, P=P)
+        self.assertTrue(res == 'optimal')
+        self.assertAlmostEqualLists(list(x1), x, 2)
+        self.assertAlmostEqualLists(list(y1), y, 2)
+
+        (res, x1, y1) = gurobi.solve(q, G_l, G, G_u, A, b, P=P)
+        self.assertTrue(res == 'optimal')
+        self.assertAlmostEqualLists(list(x1), x, 2)
+        self.assertAlmostEqualLists(list(y1), _y, 2)
 
 
 if __name__ == '__main__':

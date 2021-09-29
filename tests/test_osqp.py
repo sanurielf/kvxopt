@@ -81,10 +81,34 @@ class TestOSQP(unittest.TestCase):
         self.assertAlmostEqualLists(list(sol1['z']), z, 1)
         self.assertAlmostEqual(sol1['primal objective'], obj, 5)
 
+    def test_qp2(self):
+
+        from kvxopt import solvers, osqp, spmatrix, sparse, matrix
+        # Example from OSQP
+        q = matrix([1., 1.])
+        P = 2*sparse(matrix([[2, 0.5], [0.5, 1]]))
+        G = sparse(matrix([[-1,  0], [0, -1]]))
+        h = matrix([0, 0], tc='d')
+        A = sparse([1, 1]).T
+        b =  matrix(1.0)
+
+        x = [0.25, 0.75]
+        y = [-2.75]
+        z = [0, 0]
+        obj = 1.875
+
+        sol1 = solvers.qp(P, q, G, h, A, b, solver='osqp', options=self.opts)
+        self.assertTrue(sol1['status'] == 'optimal')
+
+        self.assertAlmostEqualLists(list(sol1['x']), x, 2)
+        self.assertAlmostEqualLists(list(sol1['y']), y, 2)
+        self.assertAlmostEqualLists(list(sol1['z']), z, 1)
+        self.assertAlmostEqual(sol1['primal objective'], obj, 3)
+
 
     # Test taken from:
     # https://github.com/oxfordcontrol/osqp-python/blob/master/module/tests/basic_test.py
-    def test_basic_OSQP_form(self):
+    def test_basic_OSQP_format(self):
         from kvxopt import solvers, osqp, spmatrix, sparse, matrix, spdiag
 
         P = spdiag([11.0, 0])

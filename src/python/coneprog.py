@@ -4422,7 +4422,6 @@ def qp(P, q, G = None, h = None, A = None, b = None, solver = None,
                 A = sparse(A)
 
             opts = options.get('gurobi',None)
-            print(P)
             solsta, x, z, y = gurobi.qp(q, G, h, A, b, P, options=opts)
 
         n = q.size[0]
