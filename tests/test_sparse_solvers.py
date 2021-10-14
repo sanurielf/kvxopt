@@ -2,7 +2,7 @@
 # @Author: Uriel Sandoval
 # @Date:   2020-08-21 11:06:17
 # @Last Modified by:   Uriel Sandoval
-# @Last Modified time: 2021-10-13 19:21:01
+# @Last Modified time: 2021-10-13 19:25:02
 
 from os import path
 import unittest
@@ -40,7 +40,7 @@ class SparseSolver(unittest.TestCase):
         fn = path.join(path.dirname(path.realpath(__file__)), self._matx_fn)
 
         try: 
-            fd = open(fm, 'r')
+            fd = open(fn, 'r')
         except IOError:
             # Matrix files are not packed for pypi releases
             self.skipTest("Test matrix files not available")
