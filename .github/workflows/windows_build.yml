@@ -14,7 +14,7 @@ env:
   GLPK_VERSION: "5.0"
   GLPK_SHA256: 4a1013eebb50f728fc601bdd833b0b2870333c3b3e5a816eeba921d95bec6f15
   OSQP_VERSION: 0.6.2
-  GSL_VERSION: "f8e56946ce337a5a3f3229821faaf52607842874"
+  GSL_COMMIT_HASH: "f8e56946ce337a5a3f3229821faaf52607842874"
 
 jobs:
   Build_common_libs:
@@ -60,7 +60,7 @@ jobs:
         run: |
             git clone --recursive https://github.com/ampl/gsl.git
             cd gsl
-            git checkout ${GSL_VERSION}
+            git checkout ${GSL_COMMIT_HASH}
 
       - name: Compile GLPK
         run: |
@@ -123,7 +123,7 @@ jobs:
       KVXOPT_BUILD_OSQP: 1
       SUITESPARSE_VERSION: 5.10.1
       SUITESPARSE_SHA256: acb4d1045f48a237e70294b950153e48dce5b5f9ca8190e86c2b8c54ce00a7ee
-      OPENBLAS_VERSION: 0.3.10
+      OPENBLAS_VERSION: 0.3.18
       FFTW_VERSION: 3.3.5
 
     strategy:
@@ -136,14 +136,14 @@ jobs:
           VC_TARGET: 64
           CMAKE_TARGET: x64
           PYTHON_TARGET: win-amd64
-          OPENBLAS_SHA256: a307629479260ebfed057a3fc466d2be83a2bb594739a99c06ec830173273135
+          OPENBLAS_SHA256: 767757039c354b6625c497a856c362546c1b1e7400278ffb40e3b9bf731f3b27
           FFTW_SHA256: cfd88dc0e8d7001115ea79e069a2c695d52c8947f5b4f3b7ac54a192756f439f
 
         - ARCH: x86
           VC_TARGET: 32
           CMAKE_TARGET: Win32
           PYTHON_TARGET: win32
-          OPENBLAS_SHA256: 7eab2be38e4c79f0ce496e7cb3ae28be457aef1b21e70eb7e32147b479b7bb57
+          OPENBLAS_SHA256: c24ecd6e5f561de3861bf714b35e0957a27ee0e03ab4d2867d08377892daf66e
           FFTW_SHA256: 29882a43033c9393479a4df52a2e9120589c06a2b724155b1a682747fa3e57d4
 
     steps:
