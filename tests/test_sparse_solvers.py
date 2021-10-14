@@ -2,7 +2,7 @@
 # @Author: Uriel Sandoval
 # @Date:   2020-08-21 11:06:17
 # @Last Modified by:   Uriel Sandoval
-# @Last Modified time: 2021-10-12 10:24:32
+# @Last Modified time: 2021-10-13 19:21:01
 
 from os import path
 import unittest
@@ -36,31 +36,38 @@ class SparseSolver(unittest.TestCase):
     def read_mtx(self):
         from kvxopt import spmatrix
 
+
         fn = path.join(path.dirname(path.realpath(__file__)), self._matx_fn)
-        with open(fn, 'r') as fd:
-            size = None
-            for row in fd.readlines():
-                if row.startswith('%'):
-                    continue
-                elif not size:
-                    size = list(map(int, row.split(' ')))
-                    I = [None] * size[2]
-                    J = [None] * size[2]
-                    V = [None] * size[2]
-                    i = 0
-                    continue
 
-                val = row.split(' ')
-                I[i] = int(val[0]) - 1
-                J[i] = int(val[1]) - 1
-                V[i] = float(val[2])
-                i += 1
+        try: 
+            fd = open(fm, 'r')
+        except IOError:
+            # Matrix files are not packed for pypi releases
+            self.skipTest("Test matrix files not available")
+        else:
+            with fd:
 
+                size = None
+                for row in fd.readlines():
+                    if row.startswith('%'):
+                        continue
+                    elif not size:
+                        size = list(map(int, row.split(' ')))
+                        I = [None] * size[2]
+                        J = [None] * size[2]
+                        V = [None] * size[2]
+                        i = 0
+                        continue
 
-            return spmatrix(V, I, J, (size[0], size[1]))
+                    val = row.split(' ')
+                    I[i] = int(val[0]) - 1
+                    J[i] = int(val[1]) - 1
+                    V[i] = float(val[2])
+                    i += 1
+
+                return spmatrix(V, I, J, (size[0], size[1]))
         
-        # Matrix files are not packed for pypi releases
-        self.skipTest("Test matrix files not available")
+
 
     def assertAlmostEqualLists(self,L1,L2,places=7, msg=None):
         self.assertEqual(len(L1),len(L2))
