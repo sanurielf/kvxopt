@@ -86,6 +86,7 @@ jobs:
         with:
           directory: ./coverage/reports/
           env_vars: OS,PYTHON
+          files: ./coverage.xml
           fail_ci_if_error: true
           flags: unittests
           name: codecov-kvxopt
