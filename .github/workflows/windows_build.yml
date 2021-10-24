@@ -222,7 +222,7 @@ jobs:
             echo "KVXOPT_OSQP_LIB_DIR=${{ github.workspace}}\osqp_lib\lib" >> $GITHUB_ENV
             echo "KVXOPT_OSQP_INC_DIR=${{ github.workspace}}\osqp_lib\include\osqp" >> $GITHUB_ENV
 
-      - name: Create .lib import files
+      - name: Create .lib import files for FFTW
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
           cd fftw_lib
