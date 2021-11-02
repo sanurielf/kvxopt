@@ -320,6 +320,8 @@ static int solve_problem(spmatrix *P, matrix *_q, matrix *G_l, spmatrix *G,
         goto CLEAN;
     }
 
+
+
     PyTuple_SET_ITEM(*res, 0,
                      (PyObject *)PYSTRING_FROMSTRING(STATUS_CODES[status]));
 
@@ -339,8 +341,11 @@ CLEAN:
     free(cind);
     free(cval);
     free(buf);
-    free(P_i);
-    free(P_j);
+    if (P) {
+        free(P_i);
+        free(P_j);
+        free(P_v);
+    }
 
     if (error) {
         printf("Error %ld\n", error);
@@ -526,6 +531,8 @@ static PyObject *solve(PyObject *self, PyObject *args, PyObject *kwargs) {
     }
 
     error = solve_problem(P, q, G_l, G, G_u, A, b, x_l, x_u, opts, &res);
+    Py_DECREF(x_l);
+    Py_DECREF(x_u);
 
     if (error == 100) {
         PyErr_NoMemory();

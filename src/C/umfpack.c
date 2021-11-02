@@ -378,7 +378,7 @@ static char doc_get_numeric[] =
 static PyObject* get_numeric(PyObject *self, PyObject *args, PyObject *kwrds)
 {
     spmatrix *A, *L, *U, *P, *Q, *R;
-    PyObject *F;
+    PyObject *F, *res;
     void *numeric;
     int trans_ = 'N';
     char trans='N';
@@ -544,7 +544,14 @@ static PyObject* get_numeric(PyObject *self, PyObject *args, PyObject *kwrds)
         return NULL;
     }
 
-    return Py_BuildValue("OOOOO", L, U, P, Q, R);
+    if (!(res = PyTuple_New(5))) return PyErr_NoMemory();
+    PyTuple_SET_ITEM(res, 0, L);
+    PyTuple_SET_ITEM(res, 1, U);
+    PyTuple_SET_ITEM(res, 2, P);
+    PyTuple_SET_ITEM(res, 3, Q);
+    PyTuple_SET_ITEM(res, 4, R);
+
+    return res;
 
       
 }
