@@ -119,7 +119,7 @@ static PyObject *resize_problem(spmatrix *G, matrix *h, spmatrix *A,
     P is also transposed
     */
     PyObject *res;
-    spmatrix *Anew;
+    spmatrix *Anew = NULL;
     matrix *l, *u;
     int_t k, i, j, m, n, nnz;
 
@@ -161,7 +161,7 @@ static PyObject *resize_problem(spmatrix *G, matrix *h, spmatrix *A,
         return NULL;
     }
 
-    for (i = 0; i < m; i++) {
+    for (i = 0; i < SP_NROWS(G); i++) {
         MAT_BUFD(l)[i] = -OSQP_INFTY;
         MAT_BUFD(u)[i] = MAT_BUFD(h)[i];
     }
@@ -315,6 +315,7 @@ static int solve_problem(spmatrix *P, matrix *q, spmatrix *A, matrix *l,
     Py_END_ALLOW_THREADS;
 
     csc_spfree(data->P);
+    c_free(data->A);
     if (P) free(Porig);
 
     x = Matrix_New(data->n, 1, DOUBLE);
