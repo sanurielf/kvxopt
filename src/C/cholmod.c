@@ -283,6 +283,7 @@ static PyObject* symbolic(PyObject *self, PyObject *args,
             return NULL;
         }
     }
+    CHOL(finish)(&Common);
     return (PyObject *) PyCapsule_New((void *) L, SP_ID(A)==DOUBLE ?
         (uplo == 'L' ?  descrdFs_L : descrdFs_U) :
         (uplo == 'L' ?  descrzFs_L : descrzFs_U),
@@ -324,6 +325,7 @@ static PyObject* numeric(PyObject *self, PyObject *args)
     PyObject *F;
     cholmod_factor *Lc;
     cholmod_sparse *Ac = NULL;
+    int status;
     char uplo;
     const char *descr;
 
@@ -356,10 +358,12 @@ static PyObject* numeric(PyObject *self, PyObject *args)
     Lc = (cholmod_factor *) PyCapsule_GetPointer(F, descr);
 
     if (!(Ac = pack(A, uplo))) return PyErr_NoMemory();
+    status = Common.status;
     CHOL(factorize) (Ac, Lc, &Common);
     CHOL(free_sparse)(&Ac, &Common);
+    CHOL(finish)(&Common);
 
-    if (Common.status < 0) switch (Common.status) {
+    if (status < 0) switch (status) {
         case CHOLMOD_OUT_OF_MEMORY:
             return PyErr_NoMemory();
 
@@ -368,7 +372,7 @@ static PyObject* numeric(PyObject *self, PyObject *args)
             return NULL;
     }
 
-    if (Common.status > 0) switch (Common.status) {
+    if (status > 0) switch (status) {
         case CHOLMOD_NOT_POSDEF:
             PyErr_SetObject(PyExc_ArithmeticError, Py_BuildValue("i",
                 Lc->minor));
@@ -426,7 +430,8 @@ static PyObject* solve(PyObject *self, PyObject *args, PyObject *kwrds)
 {
     matrix *B;
     PyObject *F;
-    int i, n, oB=0, ldB=0, nrhs=-1, sys=0;
+    int i, oB=0, ldB=0, nrhs=-1, sys=0;
+    int_t n;
     const char *descr;
     char *kwlist[] = {"F", "B", "sys", "nrhs", "ldB", "offsetB", NULL};
     int sysvalues[] = { CHOLMOD_A, CHOLMOD_LDLt, CHOLMOD_LD,
@@ -448,7 +453,7 @@ static PyObject* solve(PyObject *self, PyObject *args, PyObject *kwrds)
         PY_ERR(PyExc_ValueError, "called with symbolic factor");
 
     n = L->n;
-    if (L->minor<n) PY_ERR(PyExc_ArithmeticError, "singular matrix");
+    if ((int_t) L->minor<n) PY_ERR(PyExc_ArithmeticError, "singular matrix");
 
     if (sys < 0 || sys > 8)
          PY_ERR(PyExc_ValueError, "invalid value for sys");
@@ -480,13 +485,15 @@ static PyObject* solve(PyObject *self, PyObject *args, PyObject *kwrds)
             PyErr_SetString(PyExc_ValueError, "solve step failed");
             CHOL(free_dense)(&x, &Common);
             CHOL(free_dense)(&b, &Common);
-	    return NULL;
+            CHOL(finish)(&Common);
+            return NULL;
 	}
 	memcpy(b->x, x->x, n*E_SIZE[MAT_ID(B)]);
         CHOL(free_dense)(&x, &Common);
     }
     b->x = b_old;
     CHOL(free_dense)(&b, &Common);
+    CHOL(finish)(&Common);
 
     return Py_BuildValue("");
 }
@@ -521,7 +528,8 @@ static PyObject* spsolve(PyObject *self, PyObject *args,
     cholmod_sparse *Bc=NULL, *Xc=NULL;
     PyObject *F;
     cholmod_factor *L;
-    int n, sys=0;
+    int sys=0;
+    int_t n;
     const char *descr;
     char *kwlist[] = {"F", "B", "sys", NULL};
     int sysvalues[] = {CHOLMOD_A, CHOLMOD_LDLt, CHOLMOD_LD,
@@ -542,7 +550,7 @@ static PyObject* spsolve(PyObject *self, PyObject *args,
     if (L->xtype == CHOLMOD_PATTERN)
         PY_ERR(PyExc_ValueError, "called with symbolic factor");
     n = L->n;
-    if (L->minor<n) PY_ERR(PyExc_ArithmeticError, "singular matrix");
+    if ((int_t) L->minor<n) PY_ERR(PyExc_ArithmeticError, "singular matrix");
 
     if (sys < 0 || sys > 8)
          PY_ERR(PyExc_ValueError, "invalid value for sys");
@@ -566,6 +574,7 @@ static PyObject* spsolve(PyObject *self, PyObject *args,
         ((int_t*)Xc->p)[Xc->ncol], (L->xtype == CHOLMOD_REAL ? DOUBLE :
         COMPLEX)))) {
         CHOL(free_sparse)(&Xc, &Common);
+        CHOL(finish)(&Common);
         return NULL;
     }
     memcpy(SP_COL(X), Xc->p, (Xc->ncol+1)*sizeof(int_t));
@@ -573,6 +582,7 @@ static PyObject* spsolve(PyObject *self, PyObject *args,
     memcpy(SP_VAL(X), Xc->x,
         ((int_t *) Xc->p)[Xc->ncol]*E_SIZE[SP_ID(X)]);
     CHOL(free_sparse)(&Xc, &Common);
+    CHOL(finish)(&Common);
     return (PyObject *) X;
 }
 
@@ -610,7 +620,8 @@ static PyObject* linsolve(PyObject *self, PyObject *args,
 {
     spmatrix *A;
     matrix *B, *P=NULL;
-    int i, n, oB=0, ldB=0, nrhs=-1;
+    int i, oB=0, ldB=0, nrhs=-1;
+    int_t n;
     cholmod_sparse *Ac=NULL;
     cholmod_factor *L=NULL;
     cholmod_dense *x=NULL, *b=NULL;
@@ -654,6 +665,7 @@ static PyObject* linsolve(PyObject *self, PyObject *args,
         free_matrix(Ac);
         CHOL(free_sparse)(&Ac, &Common);
         CHOL(free_factor)(&L, &Common);
+        CHOL(finish)(&Common);
         if (Common.status == CHOLMOD_OUT_OF_MEMORY)
             return PyErr_NoMemory();
         else {
@@ -662,18 +674,19 @@ static PyObject* linsolve(PyObject *self, PyObject *args,
             return NULL;
         }
     }
-
     CHOL(factorize) (Ac, L, &Common);
     CHOL(free_sparse)(&Ac, &Common);
     if (Common.status < 0) {
         CHOL(free_factor)(&L, &Common);
         switch (Common.status) {
             case CHOLMOD_OUT_OF_MEMORY:
+                CHOL(finish)(&Common);
                 return PyErr_NoMemory();
 
             default:
                 PyErr_SetString(PyExc_ValueError, "factorization "
                     "failed");
+                CHOL(finish)(&Common);
                 return NULL;
         }
     }
@@ -682,10 +695,12 @@ static PyObject* linsolve(PyObject *self, PyObject *args,
             PyErr_SetObject(PyExc_ArithmeticError,
                 Py_BuildValue("i", L->minor));
             CHOL(free_factor)(&L, &Common);
+            CHOL(finish)(&Common);
             return NULL;
             break;
 
         case CHOLMOD_DSMALL:
+            CHOL(finish)(&Common);
             /* This never happens unless we change the default value
              * of Common.dbound (0.0).  */
             if (L->is_ll)
@@ -697,10 +712,12 @@ static PyObject* linsolve(PyObject *self, PyObject *args,
             break;
 
         default:
+            CHOL(finish)(&Common);
             PyErr_Warn(PyExc_UserWarning, "");
     }
 
-    if (L->minor<n) {
+    if ((int_t) L->minor<n) {
+        CHOL(finish)(&Common);
         CHOL(free_factor)(&L, &Common);
         PY_ERR(PyExc_ArithmeticError, "singular matrix");
     }
@@ -709,6 +726,7 @@ static PyObject* linsolve(PyObject *self, PyObject *args,
     if (Common.status == CHOLMOD_OUT_OF_MEMORY) {
         CHOL(free_factor)(&L, &Common);
         CHOL(free_dense)(&b, &Common);
+        CHOL(finish)(&Common);
         return PyErr_NoMemory();
     }
     b_old = b->x;
@@ -721,6 +739,7 @@ static PyObject* linsolve(PyObject *self, PyObject *args,
             b->x = b_old;
             CHOL(free_dense)(&b, &Common);
             CHOL(free_dense)(&x, &Common);
+            CHOL(finish)(&Common);
             return NULL;
         }
         memcpy(b->x, x->x, SP_NROWS(A)*E_SIZE[MAT_ID(B)]);
@@ -729,6 +748,7 @@ static PyObject* linsolve(PyObject *self, PyObject *args,
     b->x = b_old;
     CHOL(free_dense)(&b, &Common);
     CHOL(free_factor)(&L, &Common);
+    CHOL(finish)(&Common);
     return Py_BuildValue("");
 }
 
@@ -826,7 +846,7 @@ static PyObject* splinsolve(PyObject *self, PyObject *args,
             PyErr_Warn(PyExc_UserWarning, "");
     }
 
-    if (L->minor<n) {
+    if ((int_t) L->minor<n) {
         CHOL(free_factor)(&L, &Common);
         PY_ERR(PyExc_ArithmeticError, "singular matrix");
     }
@@ -883,8 +903,8 @@ static PyObject* diag(PyObject *self, PyObject *args)
     matrix *d=NULL;
     cholmod_factor *L;
     const char *descr;
-    int k, strt, incx=1, incy, nrows, ncols;
-
+    int strt, incx=1, incy, nrows, ncols;
+    int_t k;
     if (!set_options()) return NULL;
     if (!PyArg_ParseTuple(args, "O", &F)) return NULL;
 
@@ -904,7 +924,7 @@ static PyObject* diag(PyObject *self, PyObject *args)
 			 COMPLEX))) return NULL;
 
     strt = 0;
-    for (k=0; k<L->nsuper; k++){
+    for (k=0; k<(int_t) L->nsuper; k++){
 	/* x[L->px[k], .... ,L->px[k+1]-1] is a dense lower-triangular
 	 * nrowx times ncols matrix.  We copy its diagonal to
 	 * d[strt, ..., strt+ncols-1] */

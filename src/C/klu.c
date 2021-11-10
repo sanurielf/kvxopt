@@ -176,7 +176,7 @@ static PyObject* linsolve(PyObject *self, PyObject *args,
             if (Common.status == KLU_SINGULAR)
                 PyErr_SetString(PyExc_ArithmeticError, "singular matrix");
             else {
-                snprintf(klu_error, 20, "%s %i", "KLU ERROR", 
+                snprintf(klu_error, 20, "%s %i", "KLU ERROR",
                          (int) Common.status);
                 PyErr_SetString(PyExc_ValueError, klu_error);
             }
@@ -193,7 +193,7 @@ static PyObject* linsolve(PyObject *self, PyObject *args,
     }
     else {
         if (trans == 'N')
-            KLUZ(solve)(Symbolic, Numeric, n, nrhs, (double *) MAT_BUFZ(B), 
+            KLUZ(solve)(Symbolic, Numeric, n, nrhs, (double *) MAT_BUFZ(B),
                             &Common);
         else
             KLUZ(tsolve)(Symbolic, Numeric, n, nrhs, (double *) MAT_BUFZ(B),
@@ -265,7 +265,7 @@ static PyObject* symbolic(PyObject *self, PyObject *args)
     Symbolic = KLUD(analyze)(n, SP_COL(A), SP_ROW(A), &Common);
     if (Common.status == KLU_OK) {
         /* Symbolic is the same for DOUBLE and COMPLEX cases. Only make
-         * difference in the Capsule descriptor to avoid user errors 
+         * difference in the Capsule descriptor to avoid user errors
          */
         if (SP_ID(A) == DOUBLE)
             return (PyObject *) PyCapsule_New(
@@ -401,12 +401,12 @@ static PyObject* get_numeric(PyObject *self, PyObject *args, PyObject *kwrds)
     KLU(common) Common;
     double *Lx, *Lz, *Ux, *Uz, *Fx, *Fz;
 
-    if (!PyArg_ParseTuple(args, "OOO", &A, &Fs, &Fn)) 
+    if (!PyArg_ParseTuple(args, "OOO", &A, &Fs, &Fn))
         return NULL;
 
 
     if (!SpMatrix_Check(A)) PY_ERR_TYPE("A must be a sparse matrix");
-    
+
 
     nn = SP_NROWS(A);
 
@@ -454,12 +454,12 @@ static PyObject* get_numeric(PyObject *self, PyObject *args, PyObject *kwrds)
     /* We store r blocks as c array, then we can transform it into Python list */
     rt = malloc((symbolic->nblocks+1) * sizeof(int_t));
 
-    /* KLU_extract does not handle packed complex arrays, thus we create 
+    /* KLU_extract does not handle packed complex arrays, thus we create
      * two auxiliary arrays for L, U and F
      */
     switch (SP_ID(A)) {
         case DOUBLE:
-            status = KLUD(extract)(numeric, symbolic, 
+            status = KLUD(extract)(numeric, symbolic,
                                   SP_COL(L), SP_ROW(L), SP_VALD(L),
                                   SP_COL(U), SP_ROW(U), SP_VALD(U),
                                   SP_COL(F), SP_ROW(F), SP_VALD(F),
@@ -467,7 +467,7 @@ static PyObject* get_numeric(PyObject *self, PyObject *args, PyObject *kwrds)
             break;
 
         case COMPLEX:
-            /* KLU_extract does not handle packed complex arrays, thus we create 
+            /* KLU_extract does not handle packed complex arrays, thus we create
              * two auxiliary arrays for L, U and F
              */
             Lx = malloc(lnz * sizeof(double));
@@ -477,7 +477,7 @@ static PyObject* get_numeric(PyObject *self, PyObject *args, PyObject *kwrds)
             Fx = malloc(fnz * sizeof(double));
             Fz = malloc(fnz * sizeof(double));
 
-            status = KLUZ(extract)(numeric, symbolic, 
+            status = KLUZ(extract)(numeric, symbolic,
                                   SP_COL(L), SP_ROW(L), Lx, Lz,
                                   SP_COL(U), SP_ROW(U), Ux, Uz,
                                   SP_COL(F), SP_ROW(F), Fx, Fz,
@@ -504,7 +504,7 @@ static PyObject* get_numeric(PyObject *self, PyObject *args, PyObject *kwrds)
 
             break;
 
-    }   
+    }
 
     if (status != 1){
         snprintf(klu_error, 20, "%s %i", "KLU ERROR",
@@ -554,13 +554,13 @@ static PyObject* get_numeric(PyObject *self, PyObject *args, PyObject *kwrds)
     free(Qt);
 
     if (!(res = PyTuple_New(7))) return PyErr_NoMemory();
-    PyTuple_SET_ITEM(res, 0, L);
-    PyTuple_SET_ITEM(res, 1, U);
-    PyTuple_SET_ITEM(res, 2, P);
-    PyTuple_SET_ITEM(res, 3, Q);
-    PyTuple_SET_ITEM(res, 4, R);
-    PyTuple_SET_ITEM(res, 5, F);
-    PyTuple_SET_ITEM(res, 6, r);
+    PyTuple_SET_ITEM(res, 0, (PyObject *) L);
+    PyTuple_SET_ITEM(res, 1, (PyObject *) U);
+    PyTuple_SET_ITEM(res, 2, (PyObject *) P);
+    PyTuple_SET_ITEM(res, 3, (PyObject *) Q);
+    PyTuple_SET_ITEM(res, 4, (PyObject *) R);
+    PyTuple_SET_ITEM(res, 5, (PyObject *) F);
+    PyTuple_SET_ITEM(res, 6, (PyObject *) r);
 
     return res;
 
@@ -691,7 +691,7 @@ static PyObject* solve(PyObject *self, PyObject *args, PyObject *kwrds)
 }
 
 
-static char doc_get_det[] = 
+static char doc_get_det[] =
     "Returns determinant of a KLU symbolic/numeric object\n"
     "d = get_det(A, Fs, Fn)\n\n"
     "PURPOSE\n"
@@ -719,10 +719,10 @@ static PyObject* get_det(PyObject *self, PyObject *args, PyObject *kwrds) {
     double det = 1, d_sign;
 #ifndef _MSC_VER
     double complex det_c = 1.0;
-    double complex *Uzdiag;
+    double complex *Uzdiag = NULL;
 #else
     _Dcomplex det_c = _Cbuild(1.0, 0.0);
-    _Dcomplex *Uzdiag;
+    _Dcomplex *Uzdiag = NULL;
 #endif
 
     int_t i, k, n, npiv, itmp, *P, *Q, *Wi;
@@ -767,7 +767,7 @@ static PyObject* get_det(PyObject *self, PyObject *args, PyObject *kwrds) {
     Q = Fsptr->Q;
     Rs =  Fptr->Rs;
 
-    if (SP_ID(A) == DOUBLE)    
+    if (SP_ID(A) == DOUBLE)
         for (k = 0; k < n; k++)
             det *= (Udiag[k]*Rs[k]);
     else
