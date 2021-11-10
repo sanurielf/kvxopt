@@ -2,7 +2,7 @@
 # @Author: Uriel Sandoval
 # @Date:   2021-09-20 08:53:47
 # @Last Modified by:   Uriel Sandoval
-# @Last Modified time: 2021-09-20 10:24:22
+# @Last Modified time: 2021-11-03 22:44:06
 from setuptools import setup, Extension
 from glob import glob
 import os, sys
@@ -14,7 +14,7 @@ BLAS_LIB_DIR = '/usr/lib'
 # Default names of BLAS and LAPACK libraries
 BLAS_LIB = ['blas']
 LAPACK_LIB = ['lapack']
-FFTW_LIB = ['fftw3'] 
+FFTW_LIB = ['fftw3']
 BLAS_EXTRA_LINK_ARGS = []
 
 # Set environment variable BLAS_NOUNDERSCORES=1 if your BLAS/LAPACK do

@@ -42,8 +42,8 @@ static char umfpack_error[40];
 const char *descrdFs = "UMFPACK SYM D FACTOR";
 const char *descrzFs = "UMFPACK SYM Z FACTOR";
 
-const char *descrdFn = "UMFPACK NUM D FACTOR"; 
-const char *descrzFn = "UMFPACK NUM Z FACTOR"; 
+const char *descrdFn = "UMFPACK NUM D FACTOR";
+const char *descrzFn = "UMFPACK NUM Z FACTOR";
 
 PyDoc_STRVAR(umfpack__doc__,"Interface to the UMFPACK library.\n\n"
     "Routines for symbolic and numeric LU factorization of sparse\n"
@@ -257,9 +257,9 @@ static PyObject* symbolic(PyObject *self, PyObject *args)
             UMFD(symbolic)(SP_NROWS(A), SP_NCOLS(A), SP_COL(A),
                 SP_ROW(A), SP_VAL(A), &symbolic, NULL, info);
             if (info[UMFPACK_STATUS] == UMFPACK_OK)
-                return (PyObject *) PyCapsule_New( (void *) symbolic, 
-                    descrdFs, 
-                    (PyCapsule_Destructor) &free_umfpack_d_symbolic);  
+                return (PyObject *) PyCapsule_New( (void *) symbolic,
+                    descrdFs,
+                    (PyCapsule_Destructor) &free_umfpack_d_symbolic);
 
             else
                 UMFD(free_symbolic)(&symbolic);
@@ -339,7 +339,7 @@ static PyObject* numeric(PyObject *self, PyObject *args)
                 "factor of a 'z' matrix");
             if (!(Fsptr = (void *) PyCapsule_GetPointer(Fs, descrzFs)))
                 err_CO("Fs");
-            UMFZ(numeric)(SP_COL(A), SP_ROW(A), SP_VAL(A), NULL, Fsptr, 
+            UMFZ(numeric)(SP_COL(A), SP_ROW(A), SP_VAL(A), NULL, Fsptr,
                 &numeric, NULL, info);
 
             if (info[UMFPACK_STATUS] == UMFPACK_OK)
@@ -382,7 +382,7 @@ static PyObject* get_numeric(PyObject *self, PyObject *args, PyObject *kwrds)
     void *numeric;
     int trans_ = 'N';
     char trans='N';
-    int_t i, n_row, n_col, nn, n_inner, lnz, unz, status, ignore1, ignore2, ignore3, 
+    int_t i, n_row, n_col, nn, n_inner, lnz, unz, status, ignore1, ignore2, ignore3,
           *Ltp, *Ltj, *Up, *Ui, *Pt, *Qt, *Rp, *Ri, do_recip;
     double *Ltx, *Ux, *Rs;
     char *kwlist[] = {"A", "F", "trans", NULL};
@@ -392,7 +392,7 @@ static PyObject* get_numeric(PyObject *self, PyObject *args, PyObject *kwrds)
     trans = (char) trans_;
 
     if (!SpMatrix_Check(A)) PY_ERR_TYPE("A must be a sparse matrix");
-    
+
 
     n_row = SP_NROWS(A);
     n_col = SP_NCOLS(A);
@@ -412,13 +412,13 @@ static PyObject* get_numeric(PyObject *self, PyObject *args, PyObject *kwrds)
     switch (SP_ID(A)) {
         case DOUBLE:
             numeric = (void *) PyCapsule_GetPointer(F, descrdFn);
-            status = UMFD(get_lunz)(&lnz, &unz, &ignore1, &ignore2, &ignore3, 
+            status = UMFD(get_lunz)(&lnz, &unz, &ignore1, &ignore2, &ignore3,
                                     numeric);
             break;
 
         case COMPLEX:
             numeric = (void *) PyCapsule_GetPointer(F, descrzFn);
-            status = UMFZ(get_lunz)(&lnz, &unz, &ignore1, &ignore2, &ignore3, 
+            status = UMFZ(get_lunz)(&lnz, &unz, &ignore1, &ignore2, &ignore3,
                                     numeric);
             break;
 
@@ -471,7 +471,7 @@ static PyObject* get_numeric(PyObject *self, PyObject *args, PyObject *kwrds)
 
     case COMPLEX:
 
-        status = UMFZ(get_numeric)(Ltp, Ltj, Ltx, NULL, Up, Ui, Ux, NULL, Pt, 
+        status = UMFZ(get_numeric)(Ltp, Ltj, Ltx, NULL, Up, Ui, Ux, NULL, Pt,
                                    Qt, NULL, NULL, &do_recip, Rs, numeric);
         break;
     }
@@ -519,13 +519,13 @@ static PyObject* get_numeric(PyObject *self, PyObject *args, PyObject *kwrds)
     /* convert L from row form to column form */
     switch (SP_ID(A)) {
     case DOUBLE:
-        status = UMFD(transpose)(n_inner, n_row, Ltp, Ltj, Ltx, NULL, NULL, 
+        status = UMFD(transpose)(n_inner, n_row, Ltp, Ltj, Ltx, NULL, NULL,
                                  SP_COL(L), SP_ROW(L), SP_VALD(L));
         break;
     case COMPLEX:
-        status = UMFZ(transpose)(n_inner, n_row, Ltp, Ltj, Ltx, NULL, NULL, 
-                                 NULL, SP_COL(L), SP_ROW(L), SP_VALD(L), NULL, 0);    
-        break;    
+        status = UMFZ(transpose)(n_inner, n_row, Ltp, Ltj, Ltx, NULL, NULL,
+                                 NULL, SP_COL(L), SP_ROW(L), SP_VALD(L), NULL, 0);
+        break;
     }
 
 
@@ -545,15 +545,15 @@ static PyObject* get_numeric(PyObject *self, PyObject *args, PyObject *kwrds)
     }
 
     if (!(res = PyTuple_New(5))) return PyErr_NoMemory();
-    PyTuple_SET_ITEM(res, 0, L);
-    PyTuple_SET_ITEM(res, 1, U);
-    PyTuple_SET_ITEM(res, 2, P);
-    PyTuple_SET_ITEM(res, 3, Q);
-    PyTuple_SET_ITEM(res, 4, R);
+    PyTuple_SET_ITEM(res, 0, (PyObject *) L);
+    PyTuple_SET_ITEM(res, 1, (PyObject *) U);
+    PyTuple_SET_ITEM(res, 2, (PyObject *) P);
+    PyTuple_SET_ITEM(res, 3, (PyObject *) Q);
+    PyTuple_SET_ITEM(res, 4, (PyObject *) R);
 
     return res;
 
-      
+
 }
 
 static char doc_solve[] =
@@ -668,7 +668,7 @@ static PyObject* solve(PyObject *self, PyObject *args, PyObject *kwrds)
 
 
 
-static char doc_get_det[] = 
+static char doc_get_det[] =
     "Returns determinant of a UMFPACK symbolic/numeric object\n"
     "d = get_det(A, Fs, Fn)\n\n"
     "PURPOSE\n"
@@ -698,7 +698,7 @@ static PyObject* get_det(PyObject *self, PyObject *args, PyObject *kwrds) {
     if (SP_ID(A) == DOUBLE){
         TypeCheck_Capsule(Fn, descrdFn, "F is not the UMFPACK numeric factor "
                           "of a 'd' matrix");
-        status = UMFD(get_determinant)(&dx, NULL, 
+        status = UMFD(get_determinant)(&dx, NULL,
                               (void *) PyCapsule_GetPointer(Fn, descrdFn),
                               info);
     }
@@ -722,7 +722,7 @@ static PyObject* get_det(PyObject *self, PyObject *args, PyObject *kwrds) {
         return Py_BuildValue("d", dx);
     else
         return PyComplex_FromDoubles(dx, dz);
-    
+
 }
 
 static PyMethodDef umfpack_functions[] = {
