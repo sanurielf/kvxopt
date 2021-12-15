@@ -3295,7 +3295,7 @@ spmatrix_subscr(spmatrix* self, PyObject* args)
         Py_DECREF(Il);
         PY_ERR(PyExc_IndexError, "index out of range");
       }
-      nnz += spmatrix_getitem_i(self, CWRAP(idx,SP_LGT(self)), &val);
+      nnz += spmatrix_getitem_i(self, CWRAP(idx,SP_LGT(self)), &val) >= 0;
     }
 
     spmatrix *B = SpMatrix_New(lgt,1,nnz,SP_ID(self));
@@ -3305,7 +3305,7 @@ spmatrix_subscr(spmatrix* self, PyObject* args)
     /* fill up rowind and values */
     for (i=0; i<lgt; i++) {
       idx = MAT_BUFI(Il)[i];
-      if (spmatrix_getitem_i(self, CWRAP(idx,SP_LGT(self)), &val)) {
+      if (spmatrix_getitem_i(self, CWRAP(idx,SP_LGT(self)), &val) >= 0) {
         SP_ROW(B)[k] = i;
         write_num[SP_ID(B)](SP_VAL(B), k++, &val, 0);
       }
@@ -3663,7 +3663,7 @@ spmatrix_ass_subscr(spmatrix* self, PyObject* args, PyObject* value)
 
     i = CWRAP(i,SP_LGT(self));
 
-    if (spmatrix_getitem_i(self, i, &tempval))
+    if (spmatrix_getitem_i(self, i, &tempval) >= 0)
       spmatrix_setitem_i(self, i, &val);
     else {
       if (!realloc_ccs(self->obj, SP_NNZ(self)+1))
