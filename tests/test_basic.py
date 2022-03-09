@@ -49,6 +49,10 @@ class TestBasic(unittest.TestCase):
         c = kvxopt.matrix([1.0+2j,1-2j,0+1j])
         d = kvxopt.spmatrix([complex(1.0,0.0), complex(0.0,1.0), complex(2.0,-1.0)],[0,1,3],[0,2,3],(4,4))
         e = kvxopt.spmatrix([complex(1.0,0.0), complex(0.0,1.0), complex(2.0,-1.0)],[2,3,3],[1,2,3],(4,4))
+
+        f = kvxopt.matrix([1+1j,1+1j,1+1j,1+1j,1+1j,1+1j,1+1j,1+1j,1+1j],(3,3))
+        g = kvxopt.spmatrix([],[],[],(3,3))
+
         self.assertAlmostEqualLists(list(kvxopt.div(b,c)),[0.2-0.4j,-0.4-0.8j,-3j])
         self.assertAlmostEqualLists(list(kvxopt.div(b,2.0j)),[-0.5j,1j,-1.5j])
         self.assertAlmostEqualLists(list(kvxopt.div(a,c)),[0.2-0.4j,-0.4-0.8j,-3j])
@@ -59,6 +63,7 @@ class TestBasic(unittest.TestCase):
         self.assertAlmostEqualLists(list(kvxopt.div(1j,c)),[0.4+0.2j,-0.4+0.2j,1+0j])
         self.assertTrue(len(d)+len(e)==len(kvxopt.sparse([d,e])))
         self.assertTrue(len(d)+len(e)==len(kvxopt.sparse([[d],[e]])))
+        self.assertAlmostEqualLists(list(f+g),list(f))
 
     def test_basic_no_gsl(self):
         import sys
