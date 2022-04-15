@@ -66,9 +66,9 @@ jobs:
             cd build
             cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
             sudo cmake --build . --target install
-            echo "KVXOPT_OSQP_LIB_DIR=/usr/local/lib" >> $GITHUB_ENV
+            echo "KVXOPT_OSQP_LIB_DIR=/usr/local/lib/x86_64-linux-gnu" >> $GITHUB_ENV
             echo "KVXOPT_OSQP_INC_DIR=/usr/local/include/osqp" >> $GITHUB_ENV
-            echo "LD_LIBRARY_PATH=/usr/local/lib" >> $GITHUB_ENV
+            echo "LD_LIBRARY_PATH=/usr/local/lib/x86_64-linux-gnu" >> $GITHUB_ENV
 
       - name: Install
         run: |
