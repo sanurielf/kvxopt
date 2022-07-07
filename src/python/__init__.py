@@ -315,8 +315,7 @@ __all__ = [ 'blas', 'lapack', 'amd', 'umfpack', 'klu', 'cholmod', 'solvers',
     'exp', 'log', 'min', 'max', 'mul', 
     'div', 'normal', 'uniform', 'setseed', 'getseed', 'norm']
 
-from ._version import get_versions
-__version__ = get_versions()['version']
-del get_versions
+from . import _version
+__version__ = _version.get_versions()['version']
 
 
