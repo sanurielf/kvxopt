@@ -14,8 +14,8 @@ jobs:
       KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_OSQP: 1
       KVXOPT_BUILD_DSDP: 0
-      SUITESPARSE_VERSION: 5.10.1
-      SUITESPARSE_SHA256: acb4d1045f48a237e70294b950153e48dce5b5f9ca8190e86c2b8c54ce00a7ee
+      SUITESPARSE_VERSION: 5.12.0
+      SUITESPARSE_SHA256: 5fb0064a3398111976f30c5908a8c0b40df44c6dd8f0cc4bfa7b9e45d8c647de
 
     strategy:
       fail-fast: false
@@ -38,10 +38,26 @@ jobs:
       - name: Install libraries
         run: |
             brew install openblas glpk gsl fftw osqp
+            brew list openblas glpk gsl fftw osqp
+            echo "KVXOPT_GSL_INC_DIR=$(brew --prefix)/include" >> $GITHUB_ENV
+            echo "KVXOPT_GSL_LIB_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
+            echo "KVXOPT_LAPACK_INC_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
+            echo "KVXOPT_BLAS_LIB_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
+            echo "KVXOPT_GLPK_INC_DIR=$(brew --prefix)/include" >> $GITHUB_ENV
+            echo "KVXOPT_GLPK_LIB_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
+            echo "KVXOPT_OSQP_INC_DIR=$(brew --prefix)/include/osqp" >> $GITHUB_ENV
+            echo "KVXOPT_OSQP_LIB_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
+            echo "KVXOPT_FFTW_INC_DIR=$(brew --prefix)/include" >> $GITHUB_ENV
+            echo "KVXOPT_FFTW_LIB_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
+
 
       - name: Config suite-sparse library
-        run:
+        run: |
             brew install suite-sparse
+            brew list suite-sparse
+            echo "KVXOPT_SUITESPARSE_INC_DIR=$(brew --prefix)/include" >> $GITHUB_ENV
+            echo "KVXOPT_SUITESPARSE_LIB_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
+
         if: ${{ matrix.suite-sparse == 'lib_suitesparse' }}
 
       - name: Config suite-sparse source
