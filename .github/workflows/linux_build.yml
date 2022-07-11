@@ -14,8 +14,8 @@ jobs:
       KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_DSDP: 1
       KVXOPT_BUILD_OSQP: 1
-      SUITESPARSE_VERSION: 5.10.1
-      SUITESPARSE_SHA256: acb4d1045f48a237e70294b950153e48dce5b5f9ca8190e86c2b8c54ce00a7ee
+      SUITESPARSE_VERSION: 5.12.0
+      SUITESPARSE_SHA256: 5fb0064a3398111976f30c5908a8c0b40df44c6dd8f0cc4bfa7b9e45d8c647de
       OSQP_VERSION:  0.6.2
       OSQP_SHA256: 0a7ade2fa19f13e13bc12f6ea0046ef764049023efb4997a4e72a76534f623ec
 
@@ -66,9 +66,9 @@ jobs:
             cd build
             cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
             sudo cmake --build . --target install
-            echo "KVXOPT_OSQP_LIB_DIR=/usr/local/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+            echo "KVXOPT_OSQP_LIB_DIR=/usr/local/lib" >> $GITHUB_ENV
             echo "KVXOPT_OSQP_INC_DIR=/usr/local/include/osqp" >> $GITHUB_ENV
-            echo "LD_LIBRARY_PATH=/usr/local/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+            echo "LD_LIBRARY_PATH=/usr/local/lib" >> $GITHUB_ENV
 
       - name: Install
         run: |
@@ -90,5 +90,4 @@ jobs:
           fail_ci_if_error: true
           flags: unittests
           name: codecov-kvxopt
-          path_to_write_report: ./coverage/codecov_report.txt
           verbose: true
