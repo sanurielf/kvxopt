@@ -118,7 +118,7 @@ jobs:
       KVXOPT_BUILD_OSQP: 1
       SUITESPARSE_VERSION: 5.13.0
       SUITESPARSE_SHA256: 59c6ca2959623f0c69226cf9afb9a018d12a37fab3a8869db5f6d7f83b6b147d
-      OPENBLAS_VERSION: 0.3.18
+      OPENBLAS_VERSION: 0.3.21
       FFTW_VERSION: 3.3.5
 
     strategy:
@@ -130,16 +130,31 @@ jobs:
         - ARCH: x64
           VC_TARGET: 64
           CMAKE_TARGET: x64
-          PYTHON_TARGET: win-amd64
-          OPENBLAS_SHA256: 767757039c354b6625c497a856c362546c1b1e7400278ffb40e3b9bf731f3b27
+          PYTHON_ARCH_TARGET: win-amd64
+          OPENBLAS_SHA256: ecf1853ce92696fb8531c941c50e983ea8fa673c118a87298a075c045d52a3ca
           FFTW_SHA256: cfd88dc0e8d7001115ea79e069a2c695d52c8947f5b4f3b7ac54a192756f439f
 
         - ARCH: x86
           VC_TARGET: 32
           CMAKE_TARGET: Win32
-          PYTHON_TARGET: win32
-          OPENBLAS_SHA256: c24ecd6e5f561de3861bf714b35e0957a27ee0e03ab4d2867d08377892daf66e
+          PYTHON_ARCH_TARGET: win32
+          OPENBLAS_SHA256: 936416a0fec5506af9cf040c9de5c7edbd0ff18b53431799d1a43e47f9eba64e
           FFTW_SHA256: 29882a43033c9393479a4df52a2e9120589c06a2b724155b1a682747fa3e57d4
+
+        - python-version: 3.6
+          PYTHON_TARGET: 3.6
+
+        - python-version: 3.7
+          PYTHON_TARGET: 3.7
+
+        - python-version: 3.8
+          PYTHON_TARGET: 3.8
+
+        - python-version: 3.9
+          PYTHON_TARGET: 3.9
+
+        - python-version: 3.10
+          PYTHON_TARGET: cpython-310
 
     steps:
       - uses: actions/checkout@v2
@@ -239,12 +254,12 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
           python setup.py build
-          copy ${{ github.workspace}}\OpenBLAS\bin\libopenblas.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
-          copy ${{ github.workspace}}\osqp_lib\bin\osqp.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
-          copy ${{ github.workspace}}\osqp_lib\bin\qdldl.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
-          copy ${{ github.workspace}}\gsl_lib\bin\Debug\gsl.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
-          copy ${{ github.workspace}}\gsl_lib\bin\Debug\gslcblas.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
-          copy ${{ github.workspace}}\fftw_lib\libfftw3-3.dll build\lib.${{ matrix.PYTHON_TARGET }}-${{ matrix.python-version }}\kvxopt
+          copy ${{ github.workspace}}\OpenBLAS\bin\libopenblas.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt
+          copy ${{ github.workspace}}\osqp_lib\bin\osqp.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt
+          copy ${{ github.workspace}}\osqp_lib\bin\qdldl.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt
+          copy ${{ github.workspace}}\gsl_lib\bin\Debug\gsl.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt
+          copy ${{ github.workspace}}\gsl_lib\bin\Debug\gslcblas.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt
+          copy ${{ github.workspace}}\fftw_lib\libfftw3-3.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt
           python setup.py bdist_wheel
           pip install .
         shell: cmd
