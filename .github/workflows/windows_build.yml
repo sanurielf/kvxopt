@@ -271,4 +271,4 @@ jobs:
       - name: Test
         run: |
           python -c 'from kvxopt import blas,lapack,cholmod,umfpack,klu,glpk,osqp,fftw,gsl'
-          py.test --cov=kvxopt tests/
+          pytest --cov=kvxopt tests/

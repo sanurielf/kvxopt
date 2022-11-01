@@ -79,7 +79,7 @@ jobs:
         run: |
           echo ${KVXOPT_SUITESPARSE_SRC_DIR}
           python -c 'from kvxopt import blas,dsdp,lapack,glpk,osqp,fftw,gsl,cholmod,umfpack,klu'
-          py.test --cov=kvxopt --cov-report=xml tests/
+          pytest --cov=kvxopt --cov-report=xml tests/
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2

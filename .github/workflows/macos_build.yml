@@ -78,4 +78,4 @@ jobs:
         run: |
           echo ${KVXOPT_SUITESPARSE_SRC_DIR}
           python -c 'from kvxopt import blas,lapack,glpk,osqp,fftw,gsl,cholmod,umfpack,klu'
-          py.test --cov=kvxopt tests/
+          pytest --cov=kvxopt tests/
