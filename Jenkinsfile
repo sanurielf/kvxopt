@@ -75,7 +75,7 @@ pipeline {
             stage('Test') {
               steps {
                 sh '''python -c 'from kvxopt import blas,dsdp,lapack,glpk,osqp,fftw,gsl,cholmod,umfpack,klu'
-                      py.test --cov=kvxopt tests/'''
+                      pytest --cov=kvxopt tests/'''
               }
             }
 
@@ -152,7 +152,7 @@ pipeline {
             stage('Test') {
               steps {
                 sh '''python3 -c 'from kvxopt import blas,dsdp,lapack,glpk,osqp,fftw,gsl,cholmod,umfpack,klu'
-                      py.test --cov=kvxopt tests/'''
+                      pytest --cov=kvxopt tests/'''
               }
             }
 
