@@ -207,6 +207,7 @@ jobs:
       - name: Get suite-sparse source
         shell: msys2 {0}
         run: |
+            export MSYS=winsymlinks:lnk
             wget https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/v${{ env.SUITESPARSE_VERSION }}.tar.gz
             echo "${SUITESPARSE_SHA256}  v${{ env.SUITESPARSE_VERSION }}.tar.gz" > SuiteSparse.sha256
             shasum -a 256 -c SuiteSparse.sha256
