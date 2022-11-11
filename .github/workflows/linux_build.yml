@@ -14,8 +14,8 @@ jobs:
       KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_DSDP: 1
       KVXOPT_BUILD_OSQP: 1
-      SUITESPARSE_VERSION: 5.13.0
-      SUITESPARSE_SHA256: 59c6ca2959623f0c69226cf9afb9a018d12a37fab3a8869db5f6d7f83b6b147d
+      SUITESPARSE_VERSION: 6.0.0
+      SUITESPARSE_SHA256: 3b07fc5cec46fa66f18f0fbd6a81ad5d552533020bb3595f27c24a0274c89b7a
       OSQP_VERSION:  0.6.2
       OSQP_SHA256: 0a7ade2fa19f13e13bc12f6ea0046ef764049023efb4997a4e72a76534f623ec
 
@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.6', '3.7', '3.8', '3.9', '3.10', '3.11']
-        suite-sparse: [lib_suitesparse]
+        suite-sparse: [src_suitesparse]
 
     steps:
       - uses: actions/checkout@v2
