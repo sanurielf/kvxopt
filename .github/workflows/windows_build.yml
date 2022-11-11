@@ -67,7 +67,7 @@ jobs:
             cd ..\..
         shell: cmd
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: glpk-${{ matrix.ARCH }}
           path: |
@@ -84,7 +84,7 @@ jobs:
             cmake --build . --target install
         shell: cmd
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: osqp-${{ matrix.ARCH }}
           path: osqp/build/dist/*
@@ -99,7 +99,7 @@ jobs:
             cmake --build . --target install
         shell: cmd
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: gsl-${{ matrix.ARCH }}
           path: gsl/build/dist/*
@@ -160,9 +160,9 @@ jobs:
           PYTHON_TARGET: cpython-311
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.ARCH}}
@@ -214,7 +214,7 @@ jobs:
             tar -xf v${{ env.SUITESPARSE_VERSION }}.tar.gz
             echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: glpk-${{ matrix.ARCH }}
           path: glpk_lib
@@ -225,7 +225,7 @@ jobs:
             echo "KVXOPT_GLPK_LIB_DIR=${{ github.workspace}}\glpk_lib\w64" >> $GITHUB_ENV
             echo "KVXOPT_GLPK_INC_DIR=${{ github.workspace}}\glpk_lib\src" >> $GITHUB_ENV
       
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: osqp-${{ matrix.ARCH }}
           path: osqp_lib
@@ -243,7 +243,7 @@ jobs:
           lib /machine:${{ matrix.ARCH }} /def:libfftw3-3.def
         shell: cmd
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: gsl-${{ matrix.ARCH }}
           path: gsl_lib

@@ -167,6 +167,10 @@ extmods = []
 
 SUITESPARSE_CONF_LIB = ([], ['suitesparseconfig'])[SUITESPARSE_CONFIG]
 
+if sys.maxsize > 2**31:
+    DLONG = True
+else:
+    DLONG = False
 
 
 
@@ -252,6 +256,35 @@ if not SUITESPARSE_SRC_DIR:
         library_dirs = [SUITESPARSE_LIB_DIR, BLAS_LIB_DIR],
         sources = ['src/C/umfpack.c'])
 else:
+    umf_sources =  [ 'src/C/umfpack.c',
+            SUITESPARSE_SRC_DIR + '/UMFPACK/Source/umfpack_tictoc.c',
+            SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c']
+
+    if DLONG:
+        umf_sources += \
+        glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_l_*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_dl_*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_zl_*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*_l*.c')
+    else:
+        umf_sources += \
+        glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_i_*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_di_*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_zi_*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l]*.c')
+
+    print(glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_l_*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_dl_*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_zl_*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*_l*.c'))
+
+    print(glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_i_*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_di_*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_zi_*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l]*.c'))
+
+
+
     umfpack = Extension('umfpack',
         include_dirs = [ SUITESPARSE_SRC_DIR + '/UMFPACK/Include',
             SUITESPARSE_SRC_DIR + '/AMD/Include',
@@ -263,10 +296,7 @@ else:
         libraries = LAPACK_LIB + BLAS_LIB,
         extra_compile_args = UMFPACK_EXTRA_COMPILE_ARGS,
         extra_link_args = BLAS_EXTRA_LINK_ARGS,
-        sources = [ 'src/C/umfpack.c',
-            SUITESPARSE_SRC_DIR + '/UMFPACK/Source/umfpack_tictoc.c',
-            SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c'] +
-            glob('src/C/SuiteSparse_cvxopt_extra/umfpack/*'))
+        sources = umf_sources)
 
 if not SUITESPARSE_SRC_DIR:
     klu = Extension('klu',
@@ -276,6 +306,37 @@ if not SUITESPARSE_SRC_DIR:
     library_dirs = [SUITESPARSE_LIB_DIR, BLAS_LIB_DIR],
     sources = ['src/C/klu.c'])
 else:
+
+    klu_macros = MACROS + [('NTIMER', '1'), ('NCHOLMOD', '1')]
+
+    klu_sources = ['src/C/klu.c' ] +\
+            [SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c']
+
+    l_files = set(glob(SUITESPARSE_SRC_DIR + '/KLU/Source/*_l_*.c') +
+                  glob(SUITESPARSE_SRC_DIR + '/KLU/Source/*_zl_*.c'))
+
+
+    if DLONG:
+        #klu_macros += [('DLONG', None)]
+        klu_sources += list(l_files) +\
+            glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*_l*.c') +\
+            glob(SUITESPARSE_SRC_DIR + '/BTF/Source/*_l_*.c') +\
+            [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd_l.c'] +\
+            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_l.c'] +\
+            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_zl.c']
+
+    else:
+        klu_sources += list(set(glob(SUITESPARSE_SRC_DIR + '/KLU/Source/*.c')) - l_files) +\
+            glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l]*.c') +\
+            glob(SUITESPARSE_SRC_DIR + '/BTF/Source/*[!_l_]*.c') +\
+            [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd.c'] +\
+            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu.c'] +\
+            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_z.c']
+
+
+
+    print(klu_sources)
+
     klu = Extension('klu',
         include_dirs = [ SUITESPARSE_SRC_DIR + '/KLU/Include',
             SUITESPARSE_SRC_DIR + '/KLU/Source',
@@ -287,19 +348,14 @@ else:
             SUITESPARSE_SRC_DIR + '/BTF/Source',
             SUITESPARSE_SRC_DIR + '/SuiteSparse_config' ],
         library_dirs = [ BLAS_LIB_DIR ],
-        define_macros = MACROS + [('NTIMER', '1'), ('NCHOLMOD', '1')],
+        define_macros = klu_macros,
         libraries = LAPACK_LIB + BLAS_LIB,
         extra_link_args = BLAS_EXTRA_LINK_ARGS,
-        sources = ['src/C/klu.c' ] +
-            [SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c'] +
-            glob('src/C/SuiteSparse_cvxopt_extra/klu/*'))
+        sources = klu_sources)
 
 # Build for int or long?
-if sys.maxsize > 2**31: 
+if DLONG:
     MACROS += [('DLONG',None)]
-    DLONG = True
-else:
-    DLONG = False
 
 if not SUITESPARSE_SRC_DIR:
     cholmod = Extension('cholmod',
@@ -321,9 +377,9 @@ else:
         glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Supernodal/c*_l_*.c')
     else:
         cholmod_sources += \
-        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Core/c*[!_l_*].c') +\
-        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Cholesky/c*[!_l_*].c') +\
-        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Supernodal/c*[!_l_*].c')
+        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Core/c*[!_l_]*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Cholesky/c*[!_l_]*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Supernodal/c*[!_l_]*.c')
 
 
     cholmod = Extension('cholmod',
@@ -347,11 +403,10 @@ if not SUITESPARSE_SRC_DIR:
 else:
     amd_sources = [ 'src/C/amd.c', SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c']
 
-
     if DLONG:
-        amd_sources +=  glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*_l_*.c')
+        amd_sources += glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*_l_*.c')
     else:
-        amd_sources +=  glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l_*].c')
+        amd_sources += glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l_]*.c')
 
 
     amd = Extension('amd',
