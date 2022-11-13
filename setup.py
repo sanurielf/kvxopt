@@ -260,6 +260,7 @@ else:
             SUITESPARSE_SRC_DIR + '/UMFPACK/Source/umfpack_tictoc.c',
             SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c']
 
+
     if DLONG:
         umf_sources += \
         glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_l_*.c') +\
@@ -272,17 +273,6 @@ else:
         glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_di_*.c') +\
         glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_zi_*.c') +\
         glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l]*.c')
-
-    print(glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_l_*.c') +\
-        glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_dl_*.c') +\
-        glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_zl_*.c') +\
-        glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*_l*.c'))
-
-    print(glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_i_*.c') +\
-        glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_di_*.c') +\
-        glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_zi_*.c') +\
-        glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l]*.c'))
-
 
 
     umfpack = Extension('umfpack',
@@ -307,8 +297,6 @@ if not SUITESPARSE_SRC_DIR:
     sources = ['src/C/klu.c'])
 else:
 
-    klu_macros = MACROS + [('NTIMER', '1'), ('NCHOLMOD', '1')]
-
     klu_sources = ['src/C/klu.c' ] +\
             [SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c']
 
@@ -317,7 +305,6 @@ else:
 
 
     if DLONG:
-        #klu_macros += [('DLONG', None)]
         klu_sources += list(l_files) +\
             glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*_l*.c') +\
             glob(SUITESPARSE_SRC_DIR + '/BTF/Source/*_l_*.c') +\
@@ -334,9 +321,6 @@ else:
             [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_z.c']
 
 
-
-    print(klu_sources)
-
     klu = Extension('klu',
         include_dirs = [ SUITESPARSE_SRC_DIR + '/KLU/Include',
             SUITESPARSE_SRC_DIR + '/KLU/Source',
@@ -348,7 +332,7 @@ else:
             SUITESPARSE_SRC_DIR + '/BTF/Source',
             SUITESPARSE_SRC_DIR + '/SuiteSparse_config' ],
         library_dirs = [ BLAS_LIB_DIR ],
-        define_macros = klu_macros,
+        define_macros = MACROS + [('NTIMER', '1'), ('NCHOLMOD', '1')],
         libraries = LAPACK_LIB + BLAS_LIB,
         extra_link_args = BLAS_EXTRA_LINK_ARGS,
         sources = klu_sources)
