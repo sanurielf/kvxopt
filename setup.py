@@ -260,7 +260,6 @@ else:
             SUITESPARSE_SRC_DIR + '/UMFPACK/Source/umfpack_tictoc.c',
             SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c']
 
-
     if DLONG:
         umf_sources += \
         glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_l_*.c') +\
@@ -274,6 +273,7 @@ else:
         glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_zi_*.c') +\
         glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l]*.c')
 
+    print(umf_sources)
 
     umfpack = Extension('umfpack',
         include_dirs = [ SUITESPARSE_SRC_DIR + '/UMFPACK/Include',
