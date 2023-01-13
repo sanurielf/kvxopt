@@ -123,7 +123,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.6', '3.7', '3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
         suite-sparse: [src_suitesparse]
         ARCH: [x64, x86]
         include:
@@ -140,9 +140,6 @@ jobs:
           PYTHON_ARCH_TARGET: win32
           OPENBLAS_SHA256: 936416a0fec5506af9cf040c9de5c7edbd0ff18b53431799d1a43e47f9eba64e
           FFTW_SHA256: 29882a43033c9393479a4df52a2e9120589c06a2b724155b1a682747fa3e57d4
-
-        - python-version: 3.6
-          PYTHON_TARGET: 3.6
 
         - python-version: 3.7
           PYTHON_TARGET: 3.7
