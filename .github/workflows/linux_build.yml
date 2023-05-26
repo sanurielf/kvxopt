@@ -16,8 +16,8 @@ jobs:
       KVXOPT_BUILD_OSQP: 1
       SUITESPARSE_VERSION: 5.13.0
       SUITESPARSE_SHA256: 59c6ca2959623f0c69226cf9afb9a018d12a37fab3a8869db5f6d7f83b6b147d
-      OSQP_VERSION:  0.6.2
-      OSQP_SHA256: 0a7ade2fa19f13e13bc12f6ea0046ef764049023efb4997a4e72a76534f623ec
+      OSQP_VERSION:  0.6.3
+      OSQP_SHA256: a6b4148019001f87489c27232e2bdbac37c94f38fa37c1b4ee11eaa5654756d2
 
     strategy:
       fail-fast: false
@@ -57,7 +57,7 @@ jobs:
 
       - name: Get OSQP source and compile library
         run: |
-            wget https://github.com/osqp/osqp/releases/download/v${OSQP_VERSION}/complete_sources.tar.gz -O osqp-${OSQP_VERSION}.tar.gz
+            wget https://github.com/osqp/osqp/archive/refs/tags/v${OSQP_VERSION}.tar.gz -O osqp-${OSQP_VERSION}.tar.gz
             echo "${OSQP_SHA256}  osqp-${OSQP_VERSION}.tar.gz" > OSQP.sha256
             shasum -a 256 -c OSQP.sha256
             tar -xf osqp-${OSQP_VERSION}.tar.gz
