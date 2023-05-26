@@ -6,4 +6,4 @@ build-backend = "setuptools.build_meta"
 write_to = "src/python/_version.py"
 
 [cvxopt]
-dynamic = ["version"]
+kvxopt = ["version"]
