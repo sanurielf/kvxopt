@@ -17,7 +17,6 @@ jobs:
       SUITESPARSE_VERSION: 5.13.0
       SUITESPARSE_SHA256: 59c6ca2959623f0c69226cf9afb9a018d12a37fab3a8869db5f6d7f83b6b147d
       OSQP_VERSION:  0.6.3
-      OSQP_SHA256: a6b4148019001f87489c27232e2bdbac37c94f38fa37c1b4ee11eaa5654756d2
 
     strategy:
       fail-fast: false
@@ -57,11 +56,9 @@ jobs:
 
       - name: Get OSQP source and compile library
         run: |
-            wget https://github.com/osqp/osqp/archive/refs/tags/v${OSQP_VERSION}.tar.gz -O osqp-${OSQP_VERSION}.tar.gz
-            echo "${OSQP_SHA256}  osqp-${OSQP_VERSION}.tar.gz" > OSQP.sha256
-            shasum -a 256 -c OSQP.sha256
-            tar -xf osqp-${OSQP_VERSION}.tar.gz
+            git clone --recursive https://github.com/oxfordcontrol/osqp.git
             cd osqp
+            git checkout v${{ env.OSQP_VERSION }}
             mkdir build
             cd build
             cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
