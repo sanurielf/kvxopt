@@ -43,6 +43,27 @@ jobs:
             shasum -a 256 -c GLPK.sha256
             tar -xf glpk-${{ env.GLPK_VERSION }}.tar.gz
 
+      - name: Check cache for GLPK
+        id: glpk-cache-check
+        uses: actions/cache@v2
+        with:
+          path: glpk-${{ env.GLPK_VERSION }}\w64
+          key: ${{ runner.os }}-glpk-${{ env.GLPK_VERSION }}-${{ env.GLPK_SHA256 }}
+
+      - name: Compile GLPK
+        run: |
+          if [[ -z "${{ steps.glpk-cache-check.outputs.cache-hit }}" ]]; then
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
+            cd glpk-${{ env.GLPK_VERSION }}\w64
+            cp config_VC config.h
+            nmake /f Makefile_VC glpk.lib
+            dir
+            cd ..\..
+          else
+            echo "GLPK is already compiled, skipping compilation."
+          fi
+        shell: cmd
+
       - name: Get OSQP
         shell: msys2 {0}
         run: |
@@ -56,16 +77,6 @@ jobs:
             git clone --recursive https://github.com/ampl/gsl.git
             cd gsl
             git checkout ${GSL_COMMIT_HASH}
-
-      - name: Compile GLPK
-        run: |
-            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
-            cd glpk-${{ env.GLPK_VERSION }}\w64
-            cp config_VC config.h
-            nmake /f Makefile_VC glpk.lib
-            dir
-            cd ..\..
-        shell: cmd
 
       - uses: actions/upload-artifact@v2
         with:
@@ -173,7 +184,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov coveralls wheel numpy
+          pip install pytest pytest-cov coveralls wheel numpy build
 
 
       - name: Get openblas
@@ -185,10 +196,11 @@ jobs:
             shasum -a 256 -c OpenBLAS.sha256
             mkdir OpenBLAS
             unzip OpenBLAS-${OPENBLAS_VERSION}-${{matrix.ARCH}}.zip -d OpenBLAS/
-            echo "KVXOPT_BLAS_LIB_DIR=${{ github.workspace}}/OpenBLAS/lib" >> $GITHUB_ENV
+            echo "KVXOPT_BLAS_LIB_DIR=${{github.workspace}}/OpenBLAS/lib/" >> $GITHUB_ENV
             echo "KVXOPT_LAPACK_LIB=libopenblas" >> $GITHUB_ENV
             echo "KVXOPT_BLAS_LIB=libopenblas" >> $GITHUB_ENV
-      
+            cp OpenBLAS/bin/libopenblas.dll src/python/.libs
+
       - name: Get FFTW
         shell: msys2 {0}
         run: |
@@ -197,8 +209,8 @@ jobs:
             shasum -a 256 -c FFTW.sha256
             mkdir fftw_lib
             unzip fftw-${FFTW_VERSION}-dll${{matrix.VC_TARGET}}.zip -d fftw_lib/
-            echo "KVXOPT_FFTW_LIB_DIR=${{ github.workspace}}/fftw_lib" >> $GITHUB_ENV
-            echo "KVXOPT_FFTW_INC_DIR=${{ github.workspace}}/fftw_lib" >> $GITHUB_ENV
+            echo "KVXOPT_FFTW_LIB_DIR=${{github.workspace}}/fftw_lib" >> $GITHUB_ENV
+            echo "KVXOPT_FFTW_INC_DIR=${{github.workspace}}/fftw_lib" >> $GITHUB_ENV
             echo "KVXOPT_FFTW_LIB=libfftw3-3" >> $GITHUB_ENV
 
       - name: Get suite-sparse source
@@ -209,7 +221,7 @@ jobs:
             echo "${SUITESPARSE_SHA256}  v${{ env.SUITESPARSE_VERSION }}.tar.gz" > SuiteSparse.sha256
             shasum -a 256 -c SuiteSparse.sha256
             tar -xf v${{ env.SUITESPARSE_VERSION }}.tar.gz
-            echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
+            echo "KVXOPT_SUITESPARSE_SRC_DIR=${{github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
 
       - uses: actions/download-artifact@v2
         with:
@@ -219,25 +231,28 @@ jobs:
       - name: Set GLPK path
         shell: msys2 {0}
         run: |
-            echo "KVXOPT_GLPK_LIB_DIR=${{ github.workspace}}\glpk_lib\w64" >> $GITHUB_ENV
-            echo "KVXOPT_GLPK_INC_DIR=${{ github.workspace}}\glpk_lib\src" >> $GITHUB_ENV
-      
+            echo "KVXOPT_GLPK_LIB_DIR=${{github.workspace}}\glpk_lib\w64" >> $GITHUB_ENV
+            echo "KVXOPT_GLPK_INC_DIR=${{github.workspace}}\glpk_lib\src" >> $GITHUB_ENV
+
       - uses: actions/download-artifact@v2
         with:
           name: osqp-${{ matrix.ARCH }}
           path: osqp_lib
 
       - name: Set OSQP path
-        shell: msys2 {0}
         run: |
-            echo "KVXOPT_OSQP_LIB_DIR=${{ github.workspace}}\osqp_lib\lib" >> $GITHUB_ENV
-            echo "KVXOPT_OSQP_INC_DIR=${{ github.workspace}}\osqp_lib\include\osqp" >> $GITHUB_ENV
+            echo "KVXOPT_OSQP_LIB_DIR=${{github.workspace}}\osqp_lib\lib" >> $GITHUB_ENV
+            echo "KVXOPT_OSQP_INC_DIR=${{github.workspace}}\osqp_lib\include\osqp" >> $GITHUB_ENV
+            cp ${{github.workspace}}\osqp_lib\bin\osqp.dll src/python/.libs
+            cp ${{github.workspace}}\osqp_lib\bin\qdldl.dll src/python/.libs
 
       - name: Create .lib import files for FFTW
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
           cd fftw_lib
           lib /machine:${{ matrix.ARCH }} /def:libfftw3-3.def
+          cd ..
+          cp ${{github.workspace}}\fftw_lib\libfftw3-3.dll src/python/.libs
         shell: cmd
 
       - uses: actions/download-artifact@v2
@@ -246,23 +261,17 @@ jobs:
           path: gsl_lib
 
       - name: Set GSL path
-        shell: msys2 {0}
         run: |
-            echo "KVXOPT_GSL_LIB_DIR=${{ github.workspace}}\gsl_lib\lib\Debug" >> $GITHUB_ENV
-            echo "KVXOPT_GSL_INC_DIR=${{ github.workspace}}\gsl_lib\include" >> $GITHUB_ENV
+            echo "KVXOPT_GSL_LIB_DIR=${{github.workspace}}\gsl_lib\lib\Debug" >> $GITHUB_ENV
+            echo "KVXOPT_GSL_INC_DIR=${{github.workspace}}\gsl_lib\include" >> $GITHUB_ENV
+            cp ${{github.workspace}}\gsl_lib\bin\Debug\gsl.dll src/python/.libs
+            cp ${{github.workspace}}\gsl_lib\bin\Debug\gslcblas.dll src/python/.libs
 
       - name: Build
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
-          python setup.py build
-          copy ${{ github.workspace}}\OpenBLAS\bin\libopenblas.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt\libs
-          copy ${{ github.workspace}}\osqp_lib\bin\osqp.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt\libs
-          copy ${{ github.workspace}}\osqp_lib\bin\qdldl.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt\libs
-          copy ${{ github.workspace}}\gsl_lib\bin\Debug\gsl.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt\libs
-          copy ${{ github.workspace}}\gsl_lib\bin\Debug\gslcblas.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt\libs
-          copy ${{ github.workspace}}\fftw_lib\libfftw3-3.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt\libs
-          python setup.py bdist_wheel
-          pip install .
+          python -m build --wheel
+          pip install --no-index --find-links=${{github.workspace}}\dist kvxopt
         shell: cmd
 
       - name: Test
