@@ -369,7 +369,7 @@ language.
     ext_package = "kvxopt",
     ext_modules = extmods,
     package_dir = {"kvxopt": "src/python"},
-    package_data = {'': ['*.dll', '*LICENSE']},
+    package_data = {'': ['.libs/*.dll', '*LICENSE']},
     packages = ["kvxopt"],
     install_requires = INSTALL_REQUIRES,
     classifiers=[

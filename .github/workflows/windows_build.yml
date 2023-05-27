@@ -255,12 +255,12 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
           python setup.py build
-          copy ${{ github.workspace}}\OpenBLAS\bin\libopenblas.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt
-          copy ${{ github.workspace}}\osqp_lib\bin\osqp.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt
-          copy ${{ github.workspace}}\osqp_lib\bin\qdldl.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt
-          copy ${{ github.workspace}}\gsl_lib\bin\Debug\gsl.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt
-          copy ${{ github.workspace}}\gsl_lib\bin\Debug\gslcblas.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt
-          copy ${{ github.workspace}}\fftw_lib\libfftw3-3.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt
+          copy ${{ github.workspace}}\OpenBLAS\bin\libopenblas.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt\libs
+          copy ${{ github.workspace}}\osqp_lib\bin\osqp.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt\libs
+          copy ${{ github.workspace}}\osqp_lib\bin\qdldl.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt\libs
+          copy ${{ github.workspace}}\gsl_lib\bin\Debug\gsl.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt\libs
+          copy ${{ github.workspace}}\gsl_lib\bin\Debug\gslcblas.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt\libs
+          copy ${{ github.workspace}}\fftw_lib\libfftw3-3.dll build\lib.${{ matrix.PYTHON_ARCH_TARGET }}-${{ matrix.PYTHON_TARGET }}\kvxopt\libs
           python setup.py bdist_wheel
           pip install .
         shell: cmd
