@@ -35,7 +35,15 @@ jobs:
           msystem: MINGW64
           install: coreutils unzip git
 
-      - name: Get GLPK
+      - name: Check cache for GLPK
+        id: cache-glpk
+        uses: actions/cache@v3
+        with:
+          path: glpk-${{ env.GLPK_VERSION }}
+          key: ${{ runner.os }}-glpk-${{ env.GLPK_VERSION }}-${{ env.GLPK_SHA256 }}
+
+      - if: ${{ steps.cache-glpk.outputs.cache-hit != 'true' }}
+        name: Get GLPK
         shell: msys2 {0}
         run: |
             wget -nv http://ftp.gnu.org/gnu/glpk/glpk-${{ env.GLPK_VERSION }}.tar.gz
@@ -43,26 +51,23 @@ jobs:
             shasum -a 256 -c GLPK.sha256
             tar -xf glpk-${{ env.GLPK_VERSION }}.tar.gz
 
-      - name: Check cache for GLPK
-        id: glpk-cache-check
-        uses: actions/cache@v2
-        with:
-          path: glpk-${{ env.GLPK_VERSION }}\w64
-          key: ${{ runner.os }}-glpk-${{ env.GLPK_VERSION }}-${{ env.GLPK_SHA256 }}
-
-      - name: Compile GLPK
+      - if: ${{ steps.cache-glpk.outputs.cache-hit != 'true' }}
+        name: Compile GLPK
         run: |
-          if [[ -z "${{ steps.glpk-cache-check.outputs.cache-hit }}" ]]; then
             call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
             cd glpk-${{ env.GLPK_VERSION }}\w64
             cp config_VC config.h
             nmake /f Makefile_VC glpk.lib
             dir
             cd ..\..
-          else
-            echo "GLPK is already compiled, skipping compilation."
-          fi
         shell: cmd
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: glpk-${{ matrix.ARCH }}
+          path: |
+            glpk-${{ env.GLPK_VERSION }}\w64\*
+            glpk-${{ env.GLPK_VERSION }}\src\glpk.h
 
       - name: Get OSQP
         shell: msys2 {0}
@@ -77,13 +82,6 @@ jobs:
             git clone --recursive https://github.com/ampl/gsl.git
             cd gsl
             git checkout ${GSL_COMMIT_HASH}
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: glpk-${{ matrix.ARCH }}
-          path: |
-            glpk-${{ env.GLPK_VERSION }}\w64\*
-            glpk-${{ env.GLPK_VERSION }}\src\glpk.h
 
       - name: Compile OSQP
         run: |
