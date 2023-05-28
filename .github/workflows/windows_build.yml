@@ -40,7 +40,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: glpk-${{ env.GLPK_VERSION }}
-          key: ${{ runner.os }}-glpk-${{ env.GLPK_VERSION }}-${{ env.GLPK_SHA256 }}
+          key: ${{ runner.os }}-${{ matrix.ARCH }}-glpk-${{ env.GLPK_VERSION }}-${{ env.GLPK_SHA256 }}
 
       - if: ${{ steps.cache-glpk.outputs.cache-hit != 'true' }}
         name: Get GLPK
@@ -69,21 +69,23 @@ jobs:
             glpk-${{ env.GLPK_VERSION }}\w64\*
             glpk-${{ env.GLPK_VERSION }}\src\glpk.h
 
-      - name: Get OSQP
+      - name: Check cache for OSQP
+        id: cache-osqp
+        uses: actions/cache@v3
+        with:
+          path: osqp
+          key: ${{ runner.os }}-${{ matrix.ARCH }}-osqp-${{ env.OSQP_VERSION }}
+
+      - if: ${{ steps.cache-osqp.outputs.cache-hit != 'true' }}
+        name: Get OSQP
         shell: msys2 {0}
         run: |
             git clone --recursive https://github.com/oxfordcontrol/osqp.git
             cd osqp
             git checkout v${{ env.OSQP_VERSION }}
 
-      - name: Get GSL
-        shell: msys2 {0}
-        run: |
-            git clone --recursive https://github.com/ampl/gsl.git
-            cd gsl
-            git checkout ${GSL_COMMIT_HASH}
-
-      - name: Compile OSQP
+      - if: ${{ steps.cache-osqp.outputs.cache-hit != 'true' }}
+        name: Compile OSQP
         run: |
             call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
             cd osqp
@@ -98,7 +100,23 @@ jobs:
           name: osqp-${{ matrix.ARCH }}
           path: osqp/build/dist/*
 
-      - name: Compile GSL
+      - name: Check cache for GSL
+        id: cache-gsl
+        uses: actions/cache@v3
+        with:
+          path: gsl
+          key: ${{ runner.os }}-${{ matrix.ARCH }}-osqp-${{ env.GSL_COMMIT_HASH }}
+
+      - if: ${{ steps.cache-gsl.outputs.cache-hit != 'true' }}
+        name: Get GSL
+        shell: msys2 {0}
+        run: |
+            git clone --recursive https://github.com/ampl/gsl.git
+            cd gsl
+            git checkout ${GSL_COMMIT_HASH}
+
+      - if: ${{ steps.cache-gsl.outputs.cache-hit != 'true' }}
+        name: Compile GSL
         run: |
             call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars${{ matrix.VC_TARGET }}.bat"
             cd gsl
@@ -132,7 +150,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10', '3.11']
         suite-sparse: [src_suitesparse]
         ARCH: [x64, x86]
         include:
@@ -149,9 +167,6 @@ jobs:
           PYTHON_ARCH_TARGET: win32
           OPENBLAS_SHA256: 936416a0fec5506af9cf040c9de5c7edbd0ff18b53431799d1a43e47f9eba64e
           FFTW_SHA256: 29882a43033c9393479a4df52a2e9120589c06a2b724155b1a682747fa3e57d4
-
-        - python-version: 3.7
-          PYTHON_TARGET: 3.7
 
         - python-version: 3.8
           PYTHON_TARGET: 3.8
@@ -192,12 +207,13 @@ jobs:
             wget https://raw.githubusercontent.com/xianyi/OpenBLAS/v${OPENBLAS_VERSION}/LICENSE  -O OpenBLAS_LINCENSE
             echo "${{matrix.OPENBLAS_SHA256}}  OpenBLAS-${OPENBLAS_VERSION}-${{ matrix.ARCH }}.zip" > OpenBLAS.sha256
             shasum -a 256 -c OpenBLAS.sha256
+            mkdir src/python/.libs
             mkdir OpenBLAS
             unzip OpenBLAS-${OPENBLAS_VERSION}-${{matrix.ARCH}}.zip -d OpenBLAS/
+            cp OpenBLAS/bin/libopenblas.dll src/python/.libs
             echo "KVXOPT_BLAS_LIB_DIR=${{github.workspace}}/OpenBLAS/lib/" >> $GITHUB_ENV
             echo "KVXOPT_LAPACK_LIB=libopenblas" >> $GITHUB_ENV
             echo "KVXOPT_BLAS_LIB=libopenblas" >> $GITHUB_ENV
-            cp OpenBLAS/bin/libopenblas.dll src/python/.libs
 
       - name: Get FFTW
         shell: msys2 {0}
@@ -207,6 +223,7 @@ jobs:
             shasum -a 256 -c FFTW.sha256
             mkdir fftw_lib
             unzip fftw-${FFTW_VERSION}-dll${{matrix.VC_TARGET}}.zip -d fftw_lib/
+            cp fftw_lib/libfftw3-3.dll src/python/.libs
             echo "KVXOPT_FFTW_LIB_DIR=${{github.workspace}}/fftw_lib" >> $GITHUB_ENV
             echo "KVXOPT_FFTW_INC_DIR=${{github.workspace}}/fftw_lib" >> $GITHUB_ENV
             echo "KVXOPT_FFTW_LIB=libfftw3-3" >> $GITHUB_ENV
@@ -227,10 +244,9 @@ jobs:
           path: glpk_lib
 
       - name: Set GLPK path
-        shell: msys2 {0}
         run: |
-            echo "KVXOPT_GLPK_LIB_DIR=${{github.workspace}}\glpk_lib\w64" >> $GITHUB_ENV
-            echo "KVXOPT_GLPK_INC_DIR=${{github.workspace}}\glpk_lib\src" >> $GITHUB_ENV
+            echo "KVXOPT_GLPK_LIB_DIR=${{github.workspace}}\glpk_lib\w64" >> $env:GITHUB_ENV
+            echo "KVXOPT_GLPK_INC_DIR=${{github.workspace}}\glpk_lib\src" >> $env:GITHUB_ENV
 
       - uses: actions/download-artifact@v2
         with:
@@ -239,10 +255,10 @@ jobs:
 
       - name: Set OSQP path
         run: |
-            echo "KVXOPT_OSQP_LIB_DIR=${{github.workspace}}\osqp_lib\lib" >> $GITHUB_ENV
-            echo "KVXOPT_OSQP_INC_DIR=${{github.workspace}}\osqp_lib\include\osqp" >> $GITHUB_ENV
-            cp ${{github.workspace}}\osqp_lib\bin\osqp.dll src/python/.libs
-            cp ${{github.workspace}}\osqp_lib\bin\qdldl.dll src/python/.libs
+            copy osqp_lib\bin\osqp.dll src\python\.libs
+            copy osqp_lib\bin\qdldl.dll src\python\.libs
+            echo "KVXOPT_OSQP_LIB_DIR=${{github.workspace}}\osqp_lib\lib" >> $env:GITHUB_ENV
+            echo "KVXOPT_OSQP_INC_DIR=${{github.workspace}}\osqp_lib\include\osqp" >> $env:GITHUB_ENV
 
       - name: Create .lib import files for FFTW
         run: |
@@ -250,7 +266,6 @@ jobs:
           cd fftw_lib
           lib /machine:${{ matrix.ARCH }} /def:libfftw3-3.def
           cd ..
-          cp ${{github.workspace}}\fftw_lib\libfftw3-3.dll src/python/.libs
         shell: cmd
 
       - uses: actions/download-artifact@v2
@@ -260,10 +275,10 @@ jobs:
 
       - name: Set GSL path
         run: |
-            echo "KVXOPT_GSL_LIB_DIR=${{github.workspace}}\gsl_lib\lib\Debug" >> $GITHUB_ENV
-            echo "KVXOPT_GSL_INC_DIR=${{github.workspace}}\gsl_lib\include" >> $GITHUB_ENV
-            cp ${{github.workspace}}\gsl_lib\bin\Debug\gsl.dll src/python/.libs
-            cp ${{github.workspace}}\gsl_lib\bin\Debug\gslcblas.dll src/python/.libs
+            copy gsl_lib\bin\Debug\gsl.dll src\python\.libs
+            copy gsl_lib\bin\Debug\gslcblas.dll src\python\.libs
+            echo "KVXOPT_GSL_LIB_DIR=${{github.workspace}}\gsl_lib\lib\Debug" >> $env:GITHUB_ENV
+            echo "KVXOPT_GSL_INC_DIR=${{github.workspace}}\gsl_lib\include" >> $env:GITHUB_ENV
 
       - name: Build
         run: |
