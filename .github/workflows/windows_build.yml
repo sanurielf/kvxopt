@@ -47,6 +47,8 @@ jobs:
         shell: msys2 {0}
         run: |
             git clone --recursive https://github.com/oxfordcontrol/osqp.git
+            git submodule sync --recursive
+            git -c protocol.version=2 submodule update --init --force --depth=1 --recursive
             cd osqp
             git checkout v${{ env.OSQP_VERSION }}
 
@@ -123,7 +125,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
         suite-sparse: [src_suitesparse]
         ARCH: [x64, x86]
         include:
@@ -269,4 +271,3 @@ jobs:
         run: |
           python -c 'from kvxopt import blas,lapack,cholmod,umfpack,klu,glpk,osqp,fftw,gsl'
           pytest --cov=kvxopt tests/
-
