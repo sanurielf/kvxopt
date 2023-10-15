@@ -1,15 +1,16 @@
 .. title:: Table of Contents
 
 ####################
-kvxopt User's Guide
+KVXOPT User's Guide
 ####################
 
-**Release 1.3.0.0 -- March 7, 2022**
+**Release 1.3.0.1 -- May 9, 2023**
 
 **Martin Andersen, Joachim Dahl, and Lieven Vandenberghe**
 
 .. toctree::
-
+    :maxdepth: 2
+    
     copyright.rst
     intro.rst
     matrices.rst

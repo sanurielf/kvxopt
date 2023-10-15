@@ -6,7 +6,6 @@
 from setuptools import setup, Extension
 from glob import glob
 import os, sys
-import versioneer
 
 # Modifiy this if BLAS and LAPACK libraries are not in /usr/lib.
 BLAS_LIB_DIR = '/usr/lib'
@@ -406,8 +405,6 @@ extmods += [base, blas, lapack, umfpack, klu, cholmod, amd, misc_solvers]
 
 setup (name = 'kvxopt',
     description = 'Convex optimization package and Suite Sparse interface',
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
     long_description = '''
 KVXOPT is a fork from CVXOPT wich contains more functions and
 wrappers to Suite Sparse library.
@@ -424,11 +421,12 @@ language.
     author = 'M. Andersen, J. Dahl, L. Vandenberghe, and U. Sandoval',
     author_email = 'martin.skovgaard.andersen@gmail.com, dahl.joachim@gmail.com, vandenbe@ee.ucla.edu, sanurielf@gmail.com',
     url = '',
+    project_urls = {'Source': 'https://github.com/sanurielf/kvxopt'},
     license = 'GNU GPL version 3',
     ext_package = "kvxopt",
     ext_modules = extmods,
     package_dir = {"kvxopt": "src/python"},
-    package_data = {'': ['*.dll', '*LICENSE']},
+    package_data = {'': ['.libs/*.dll', '*LICENSE']},
     packages = ["kvxopt"],
     install_requires = INSTALL_REQUIRES,
     classifiers=[
