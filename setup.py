@@ -272,8 +272,6 @@ else:
         glob(SUITESPARSE_SRC_DIR + '/UMFPACK/Source2/*_zi_*.c') +\
         glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l]*.c')
 
-    print(umf_sources)
-
     umfpack = Extension('umfpack',
         include_dirs = [ SUITESPARSE_SRC_DIR + '/UMFPACK/Include',
             SUITESPARSE_SRC_DIR + '/AMD/Include',
@@ -296,7 +294,8 @@ if not SUITESPARSE_SRC_DIR:
     sources = ['src/C/klu.c'])
 else:
 
-    klu_sources = [SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c']
+    klu_sources = [ 'src/C/klu.c',
+                  SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c']
 
     if DLONG:
         klu_sources += \
@@ -304,18 +303,20 @@ else:
             glob(SUITESPARSE_SRC_DIR + '/BTF/Source/*_l_*.c') +\
             [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd_l.c'] +\
             [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_l.c'] +\
-            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/*_l_*.c') +\
-            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/*_zl_*.c')
+            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/klu_l*.c') +\
+            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/klu_zl*.c')
     else:
         klu_sources += \
             glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l]*.c') +\
             glob(SUITESPARSE_SRC_DIR + '/BTF/Source/*[!_l_]*.c') +\
             [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd.c'] +\
             [SUITESPARSE_SRC_DIR + '/KLU/Source/klu.c'] +\
-            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/*[!_l_]*.c') +\
-            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/*[!_zl_]*.c')
+            list(set(glob(SUITESPARSE_SRC_DIR + '/KLU/Source/klu_[!l]*.c')) &
+                 set(glob(SUITESPARSE_SRC_DIR + '/KLU/Source/klu_[!zl]*.c'))) +\
+            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_z.c'] +\
+            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/klu_z_*.c')
 
-
+    print(klu_sources)
     klu = Extension('klu',
         include_dirs = [ SUITESPARSE_SRC_DIR + '/KLU/Include',
             SUITESPARSE_SRC_DIR + '/KLU/Source',
@@ -344,21 +345,23 @@ if not SUITESPARSE_SRC_DIR:
         sources = [ 'src/C/cholmod.c' ])
 else:
     cholmod_sources = [ 'src/C/cholmod.c' ] +\
-        [SUITESPARSE_SRC_DIR + '/AMD/Source/' + s for s in ['amd_postorder.c', 'amd_post_tree.c', 'amd_2.c']] +\
-        [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd.c'] +\
         [SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c'] +\
         [SUITESPARSE_SRC_DIR + '/CHOLMOD/Check/cholmod_check.c']
 
     if DLONG:
         cholmod_sources += \
-        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Core/c*_l_*.c') +\
-        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Cholesky/c*_l_*.c') +\
+        [SUITESPARSE_SRC_DIR + '/AMD/Source/amd_l' + s for s in ['_postorder.c', '_post_tree.c', '2.c']] +\
+        [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd_l.c'] +\
+        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Core/cholmod_l_*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Cholesky/cholmod_l_*.c') +\
         glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Supernodal/c*_l_*.c')
     else:
         cholmod_sources += \
-        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Core/c*[!_l_]*.c') +\
-        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Cholesky/c*[!_l_]*.c') +\
-        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Supernodal/c*[!_l_]*.c')
+        [SUITESPARSE_SRC_DIR + '/AMD/Source/amd_' + s for s in ['postorder.c', 'post_tree.c', '2.c']] +\
+        [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd.c'] +\
+        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Core/cholmod_[!l_]*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Cholesky/cholmod_[!l_]*.c') +\
+        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Supernodal/cholmod_[!l_]*.c')
 
 
     cholmod = Extension('cholmod',

@@ -160,14 +160,14 @@ jobs:
           VC_TARGET: 64
           CMAKE_TARGET: x64
           PYTHON_ARCH_TARGET: win-amd64
-          OPENBLAS_SHA256: 9255020dcd6e10e037550b04aa7b85b2a2c610c2a479be79b26105eb81fe253b
+          OPENBLAS_SHA256: e3a82e60db8d6197228790567e7cf74f2c421a65b29f848977a07b5457debdaa
           FFTW_SHA256: cfd88dc0e8d7001115ea79e069a2c695d52c8947f5b4f3b7ac54a192756f439f
 
         - ARCH: x86
           VC_TARGET: 32
           CMAKE_TARGET: Win32
           PYTHON_ARCH_TARGET: win32
-          OPENBLAS_SHA256: 53e019385d8730a36943c5e3816d5994b448c8cfd9f3a9a55bc2f189f09dc821
+          OPENBLAS_SHA256: 89060f862ca33219aaf7ef49b58a0a8b2d763236a1c6a16c693cd28146a812e6
           FFTW_SHA256: 29882a43033c9393479a4df52a2e9120589c06a2b724155b1a682747fa3e57d4
 
         - python-version: 3.8
@@ -205,7 +205,7 @@ jobs:
       - name: Get openblas
         shell: msys2 {0}
         run: |
-            wget https://github.com/xianyi/OpenBLAS/releases/download/v${OPENBLAS_VERSION}/OpenBLAS-${OPENBLAS_VERSION}-${{matrix.ARCH}}.zip
+            wget https://github.com/openmathlib/OpenBLAS/releases/download/v${OPENBLAS_VERSION}/OpenBLAS-${OPENBLAS_VERSION}-${{matrix.ARCH}}.zip
             wget https://raw.githubusercontent.com/xianyi/OpenBLAS/v${OPENBLAS_VERSION}/LICENSE  -O OpenBLAS_LINCENSE
             echo "${{matrix.OPENBLAS_SHA256}}  OpenBLAS-${OPENBLAS_VERSION}-${{ matrix.ARCH }}.zip" > OpenBLAS.sha256
             shasum -a 256 -c OpenBLAS.sha256
