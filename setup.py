@@ -300,25 +300,20 @@ else:
     klu_sources = ['src/C/klu.c' ] +\
             [SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c']
 
-    l_files = set(glob(SUITESPARSE_SRC_DIR + '/KLU/Source/*_l_*.c') +
-                  glob(SUITESPARSE_SRC_DIR + '/KLU/Source/*_zl_*.c'))
-
-
     if DLONG:
-        klu_sources += list(l_files) +\
+        klu_sources += \
             glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*_l*.c') +\
             glob(SUITESPARSE_SRC_DIR + '/BTF/Source/*_l_*.c') +\
             [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd_l.c'] +\
-            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_l.c'] +\
-            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_zl.c']
-
+            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/*_l*.c') +\
+            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/*_zl*.c')
     else:
-        klu_sources += list(set(glob(SUITESPARSE_SRC_DIR + '/KLU/Source/*.c')) - l_files) +\
+        klu_sources += \
             glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l]*.c') +\
             glob(SUITESPARSE_SRC_DIR + '/BTF/Source/*[!_l_]*.c') +\
             [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd.c'] +\
-            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu.c'] +\
-            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_z.c']
+            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/*[!_l]*.c') +\
+            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/*[!_zl]*.c')
 
 
     klu = Extension('klu',
