@@ -388,9 +388,9 @@ else:
     amd_sources = [ 'src/C/amd.c', SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c']
 
     if DLONG:
-        amd_sources += glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*_l_*.c')
+        amd_sources += glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*_l*.c')
     else:
-        amd_sources += glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l_]*.c')
+        amd_sources += glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l]*.c')
 
 
     amd = Extension('amd',
