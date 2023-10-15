@@ -47,10 +47,10 @@ jobs:
         shell: msys2 {0}
         run: |
             git clone --recursive https://github.com/oxfordcontrol/osqp.git
-            git submodule sync --recursive
-            git -c protocol.version=2 submodule update --init --force --depth=1 --recursive
             cd osqp
             git checkout v${{ env.OSQP_VERSION }}
+            git submodule sync --recursive
+            git -c protocol.version=2 submodule update --init --force --depth=1 --recursive
 
       - name: Get GSL
         shell: msys2 {0}
