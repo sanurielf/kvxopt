@@ -83,6 +83,8 @@ jobs:
             git clone --recursive https://github.com/oxfordcontrol/osqp.git
             cd osqp
             git checkout v${{ env.OSQP_VERSION }}
+            git submodule sync --recursive
+            git -c protocol.version=2 submodule update --init --force --depth=1 --recursive
 
       - if: ${{ steps.cache-osqp.outputs.cache-hit != 'true' }}
         name: Compile OSQP
