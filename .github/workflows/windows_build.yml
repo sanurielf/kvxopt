@@ -116,8 +116,8 @@ jobs:
       KVXOPT_BUILD_DSDP: 0
       KVXOPT_MSVC: 1
       KVXOPT_BUILD_OSQP: 1
-      SUITESPARSE_VERSION: 6.0.0
-      SUITESPARSE_SHA256: 3b07fc5cec46fa66f18f0fbd6a81ad5d552533020bb3595f27c24a0274c89b7a
+      SUITESPARSE_VERSION: 7.2.1
+      SUITESPARSE_SHA256: 304e959a163ff74f8f4055dade3e0b5498d9aa3b1c483633bb400620f521509f
       OPENBLAS_VERSION: 0.3.22
       FFTW_VERSION: 3.3.5
 
@@ -269,3 +269,4 @@ jobs:
         run: |
           python -c 'from kvxopt import blas,lapack,cholmod,umfpack,klu,glpk,osqp,fftw,gsl'
           pytest --cov=kvxopt tests/
+
