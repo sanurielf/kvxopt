@@ -16,8 +16,7 @@ jobs:
       KVXOPT_BUILD_OSQP: 1
       SUITESPARSE_VERSION: 7.2.1
       SUITESPARSE_SHA256: 304e959a163ff74f8f4055dade3e0b5498d9aa3b1c483633bb400620f521509f
-      OSQP_VERSION:  0.6.2
-      OSQP_SHA256: 0a7ade2fa19f13e13bc12f6ea0046ef764049023efb4997a4e72a76534f623ec
+      OSQP_VERSION:  0.6.3
 
     strategy:
       fail-fast: false
@@ -57,11 +56,11 @@ jobs:
 
       - name: Get OSQP source and compile library
         run: |
-            wget https://github.com/osqp/osqp/releases/download/v${OSQP_VERSION}/complete_sources.tar.gz -O osqp-${OSQP_VERSION}.tar.gz
-            echo "${OSQP_SHA256}  osqp-${OSQP_VERSION}.tar.gz" > OSQP.sha256
-            shasum -a 256 -c OSQP.sha256
-            tar -xf osqp-${OSQP_VERSION}.tar.gz
+            git clone --recursive https://github.com/oxfordcontrol/osqp.git
             cd osqp
+            git checkout v${{ env.OSQP_VERSION }}
+            git submodule sync --recursive
+            git -c protocol.version=2 submodule update --init --force --depth=1 --recursive
             mkdir build
             cd build
             cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
