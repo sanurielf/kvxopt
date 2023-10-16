@@ -1,8 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author: Uriel Sandoval
-# @Date:   2021-09-20 08:53:47
-# @Last Modified by:   Uriel Sandoval
-# @Last Modified time: 2021-11-03 22:44:06
 from setuptools import setup, Extension
 from glob import glob
 import os, sys
@@ -432,6 +427,7 @@ language.
     package_dir = {"kvxopt": "src/python"},
     package_data = {'': ['.libs/*.dll', '*LICENSE']},
     packages = ["kvxopt"],
+    python_requires=PYTHON_REQUIRES,
     install_requires = INSTALL_REQUIRES,
     classifiers=[
         'Development Status :: 5 - Production/Stable',
