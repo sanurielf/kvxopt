@@ -4,7 +4,7 @@
 KVXOPT User's Guide
 ####################
 
-**Release 1.3.2.0 -- Aug 9, 2023**
+**Release 1.3.2.1 -- Aug 9, 2023**
 
 **Martin Andersen, Joachim Dahl, and Lieven Vandenberghe**
 
