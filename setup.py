@@ -394,6 +394,7 @@ else:
         glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Core/cholmod_l_*.c') +\
         glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Cholesky/cholmod_l_*.c') +\
         glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Supernodal/c*_l_*.c')
+        glob(SUITESPARSE_SRC_DIR + "/CHOLMOD/Utility/c*_l_*.c")
     else:
         cholmod_sources += \
         [SUITESPARSE_SRC_DIR + '/AMD/Source/amd_' + s for s in ['postorder.c', 'post_tree.c', '2.c']] +\
@@ -401,7 +402,7 @@ else:
         glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Core/cholmod_[!l_]*.c') +\
         glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Cholesky/cholmod_[!l_]*.c') +\
         glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Supernodal/cholmod_[!l_]*.c')
-
+        glob(SUITESPARSE_SRC_DIR + "/CHOLMOD/Utility/cholmod_[!l_]*.c")
 
     cholmod = Extension('cholmod',
         library_dirs = [ BLAS_LIB_DIR ],
