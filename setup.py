@@ -388,6 +388,7 @@ else:
         + [SUITESPARSE_SRC_DIR + "/SuiteSparse_config/SuiteSparse_config.c"]
         + glob(SUITESPARSE_SRC_DIR + "/CHOLMOD/Check/cholmod_*.c")
         + glob(SUITESPARSE_SRC_DIR + "/CHOLMOD/Utility/cholmod_*.c")
+        + glob(SUITESPARSE_SRC_DIR + "/CHOLMOD/MatrixOps/cholmod_*.c")
     )
 
     if DLONG:
