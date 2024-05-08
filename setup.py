@@ -383,9 +383,12 @@ if not SUITESPARSE_SRC_DIR:
         library_dirs = [SUITESPARSE_LIB_DIR, BLAS_LIB_DIR],
         sources = [ 'src/C/cholmod.c' ])
 else:
-    cholmod_sources = [ 'src/C/cholmod.c' ] +\
-        [SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c'] +\
-        [SUITESPARSE_SRC_DIR + '/CHOLMOD/Check/cholmod_check.c']
+    cholmod_sources = (
+        ["src/C/cholmod.c"]
+        + [SUITESPARSE_SRC_DIR + "/SuiteSparse_config/SuiteSparse_config.c"]
+        + [SUITESPARSE_SRC_DIR + "/CHOLMOD/Check/cholmod_check.c"]
+        + glob(SUITESPARSE_SRC_DIR + "/CHOLMOD/Utility/cholmod_*.c")
+    )
 
     if DLONG:
         cholmod_sources += \
@@ -393,16 +396,14 @@ else:
         [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd_l.c'] +\
         glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Core/cholmod_l_*.c') +\
         glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Cholesky/cholmod_l_*.c') +\
-        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Supernodal/c*_l_*.c') +\
-        glob(SUITESPARSE_SRC_DIR + "/CHOLMOD/Utility/cholmod_l_*.c")
+        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Supernodal/c*_l_*.c')
     else:
         cholmod_sources += \
         [SUITESPARSE_SRC_DIR + '/AMD/Source/amd_' + s for s in ['postorder.c', 'post_tree.c', '2.c']] +\
         [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd.c'] +\
         glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Core/cholmod_[!l_]*.c') +\
         glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Cholesky/cholmod_[!l_]*.c') +\
-        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Supernodal/cholmod_[!l_]*.c') +\
-        glob(SUITESPARSE_SRC_DIR + "/CHOLMOD/Utility/cholmod_[!l_]*.c")
+        glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Supernodal/cholmod_[!l_]*.c')
 
     cholmod = Extension('cholmod',
         library_dirs = [ BLAS_LIB_DIR ],
