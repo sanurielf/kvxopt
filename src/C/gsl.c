@@ -19,7 +19,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "kvxopt.h"
+#include "cvxopt.h"
 
 #include <complex.h>
 

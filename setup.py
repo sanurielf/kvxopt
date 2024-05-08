@@ -167,6 +167,7 @@ else:
     DLONG = False
 
 
+
 # Macros
 MACROS = []
 if BLAS_NOUNDERSCORES: MACROS.append(('BLAS_NO_UNDERSCORE',''))
@@ -292,70 +293,25 @@ else:
                   SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c']
 
     if DLONG:
-        klu_sources += (
-            glob(SUITESPARSE_SRC_DIR + "/AMD/Source/*_l*.c")
-            + glob(SUITESPARSE_SRC_DIR + "/BTF/Source/*_l_*.c")
-            + [SUITESPARSE_SRC_DIR + "/COLAMD/Source/colamd_l.c"]
-            + [
-                SUITESPARSE_SRC_DIR + "/KLU/Source/" + x + ".c"
-                for x in [
-                    "klu_l",
-                    "klu_zl",
-                    "klu_l_memory",
-                    "klu_l_analyze_given",
-                    "klu_l_scale",
-                    "klu_zl_scale",
-                    "klu_l_kernel",
-                    "klu_zl_kernel",
-                    "klu_zl_factor",
-                    "klu_zl_solve",
-                    "klu_l_free_numeric",
-                    "klu_zl_free_numeric",
-                    "klu_l_analyze",
-                    "klu_l_defaults",
-                    "klu_l_solve",
-                    "klu_l_factor",
-                    "klu_zl_extract",
-                    "klu_zl_tsolve",
-                    "klu_l_tsolve",
-                    "klu_l_free_symbolic",
-                    "klu_l_extract",
-                ]
-            ]
-        )
+        klu_sources += \
+            glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*_l*.c') +\
+            glob(SUITESPARSE_SRC_DIR + '/BTF/Source/*_l_*.c') +\
+            [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd_l.c'] +\
+            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_l.c'] +\
+            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/klu_l*.c') +\
+            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/klu_zl*.c')
     else:
-        klu_sources += (
-            glob(SUITESPARSE_SRC_DIR + "/AMD/Source/*[!_l]*.c")
-            + glob(SUITESPARSE_SRC_DIR + "/BTF/Source/*[!_l_]*.c")
-            + [SUITESPARSE_SRC_DIR + "/COLAMD/Source/colamd.c"]
-            + [
-                SUITESPARSE_SRC_DIR + "/KLU/Source/" + x + ".c"
-                for x in [
-                    "klu",
-                    "klu_z",
-                    "klu_memory",
-                    "klu_analyze_given",
-                    "klu_scale",
-                    "klu_z_scale",
-                    "klu_analyze",
-                    "klu_kernel",
-                    "klu_z_kernel",
-                    "klu_free_numeric",
-                    "klu_z_free_numeric",
-                    "klu_defaults",
-                    "klu_solve",
-                    "klu_tsolve",
-                    "klu_z_solve",
-                    "klu_z_tsolve",
-                    "klu_factor",
-                    "klu_z_factor",
-                    "klu_extract",
-                    "klu_z_extract",
-                    "klu_free_symbolic",
-                ]
-            ]
-        )
+        klu_sources += \
+            glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l]*.c') +\
+            glob(SUITESPARSE_SRC_DIR + '/BTF/Source/*[!_l_]*.c') +\
+            [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd.c'] +\
+            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu.c'] +\
+            list(set(glob(SUITESPARSE_SRC_DIR + '/KLU/Source/klu_[!l]*.c')) &
+                 set(glob(SUITESPARSE_SRC_DIR + '/KLU/Source/klu_[!zl]*.c'))) +\
+            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_z.c'] +\
+            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/klu_z_*.c')
 
+    print(klu_sources)
     klu = Extension('klu',
         include_dirs = [ SUITESPARSE_SRC_DIR + '/KLU/Include',
             SUITESPARSE_SRC_DIR + '/KLU/Source',
@@ -383,13 +339,9 @@ if not SUITESPARSE_SRC_DIR:
         library_dirs = [SUITESPARSE_LIB_DIR, BLAS_LIB_DIR],
         sources = [ 'src/C/cholmod.c' ])
 else:
-    cholmod_sources = (
-        ["src/C/cholmod.c"]
-        + [SUITESPARSE_SRC_DIR + "/SuiteSparse_config/SuiteSparse_config.c"]
-        + glob(SUITESPARSE_SRC_DIR + "/CHOLMOD/Check/cholmod_*.c")
-        + glob(SUITESPARSE_SRC_DIR + "/CHOLMOD/Utility/cholmod_*.c")
-        + glob(SUITESPARSE_SRC_DIR + "/CHOLMOD/MatrixOps/cholmod_*.c")
-    )
+    cholmod_sources = [ 'src/C/cholmod.c' ] +\
+        [SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c'] +\
+        [SUITESPARSE_SRC_DIR + '/CHOLMOD/Check/cholmod_check.c']
 
     if DLONG:
         cholmod_sources += \
@@ -405,6 +357,7 @@ else:
         glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Core/cholmod_[!l_]*.c') +\
         glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Cholesky/cholmod_[!l_]*.c') +\
         glob(SUITESPARSE_SRC_DIR + '/CHOLMOD/Supernodal/cholmod_[!l_]*.c')
+
 
     cholmod = Extension('cholmod',
         library_dirs = [ BLAS_LIB_DIR ],

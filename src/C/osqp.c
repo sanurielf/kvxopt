@@ -20,7 +20,7 @@
 #include "osqp.h"
 
 #include "cs.h"
-#include "kvxopt.h"
+#include "cvxopt.h"
 #include "misc.h"
 
 #define xstr(s) str(s)

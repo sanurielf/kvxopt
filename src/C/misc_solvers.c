@@ -20,7 +20,7 @@
  */
 
 #include "Python.h"
-#include "kvxopt.h"
+#include "cvxopt.h"
 #include "misc.h"
 #include "math.h"
 #include "float.h"

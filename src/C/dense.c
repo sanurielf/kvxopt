@@ -22,7 +22,7 @@
 #define BASE_MODULE
 
 #include "Python.h"
-#include "kvxopt.h"
+#include "cvxopt.h"
 #include "misc.h"
 #include <complexobject.h>
 #include <limits.h>
