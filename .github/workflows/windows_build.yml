@@ -199,7 +199,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov coveralls wheel numpy build
+          pip install setuptools setuptools_scm pytest pytest-cov coveralls wheel numpy build
 
 
       - name: Get openblas
