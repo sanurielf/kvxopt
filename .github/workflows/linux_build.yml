@@ -81,12 +81,13 @@ jobs:
           pytest --cov=kvxopt --cov-report=xml tests/
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v4
         with:
           directory: ./coverage/reports/
           env_vars: OS,PYTHON
           files: ./coverage.xml
           fail_ci_if_error: true
           flags: unittests
-          name: codecov-kvxopt
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: sanurielf/kvxopt
           verbose: true

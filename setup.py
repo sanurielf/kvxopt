@@ -301,6 +301,10 @@ else:
                 for x in [
                     "klu_l",
                     "klu_zl",
+                    "klu_l_memory",
+                    "klu_l_analyze_given",
+                    "klu_l_scale",
+                    "klu_zl_scale",
                     "klu_l_kernel",
                     "klu_zl_kernel",
                     "klu_zl_factor",
@@ -329,6 +333,10 @@ else:
                 for x in [
                     "klu",
                     "klu_z",
+                    "klu_memory",
+                    "klu_analyze_given",
+                    "klu_scale",
+                    "klu_z_scale",
                     "klu_analyze",
                     "klu_kernel",
                     "klu_z_kernel",
