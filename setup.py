@@ -386,7 +386,7 @@ else:
     cholmod_sources = (
         ["src/C/cholmod.c"]
         + [SUITESPARSE_SRC_DIR + "/SuiteSparse_config/SuiteSparse_config.c"]
-        + [SUITESPARSE_SRC_DIR + "/CHOLMOD/Check/cholmod_check.c"]
+        + [SUITESPARSE_SRC_DIR + "/CHOLMOD/Check/cholmod_*.c"]
         + glob(SUITESPARSE_SRC_DIR + "/CHOLMOD/Utility/cholmod_*.c")
     )
 
