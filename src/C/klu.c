@@ -18,7 +18,7 @@
  */
 
 
-#include "cvxopt.h"
+#include "kvxopt.h"
 #include "klu.h"
 #include "misc.h"
 

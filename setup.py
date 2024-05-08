@@ -298,20 +298,15 @@ else:
             glob(SUITESPARSE_SRC_DIR + '/BTF/Source/*_l_*.c') +\
             [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd_l.c'] +\
             [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_l.c'] +\
-            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/klu_l*.c') +\
-            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/klu_zl*.c')
+            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_zl.c']
     else:
         klu_sources += \
             glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l]*.c') +\
             glob(SUITESPARSE_SRC_DIR + '/BTF/Source/*[!_l_]*.c') +\
             [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd.c'] +\
             [SUITESPARSE_SRC_DIR + '/KLU/Source/klu.c'] +\
-            list(set(glob(SUITESPARSE_SRC_DIR + '/KLU/Source/klu_[!l]*.c')) &
-                 set(glob(SUITESPARSE_SRC_DIR + '/KLU/Source/klu_[!zl]*.c'))) +\
-            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_z.c'] +\
-            glob(SUITESPARSE_SRC_DIR + '/KLU/Source/klu_z_*.c')
+            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_z.c']
 
-    print(klu_sources)
     klu = Extension('klu',
         include_dirs = [ SUITESPARSE_SRC_DIR + '/KLU/Include',
             SUITESPARSE_SRC_DIR + '/KLU/Source',

@@ -88,7 +88,7 @@
 <span id="c-capi"></span><h1>C API<a class="headerlink" href="#c-api" title="Permalink to this heading"></a></h1>
 <p>The API can be used to extend CVXOPT with interfaces to external C routines
 and libraries.  A C program that creates or manipulates the dense or sparse
-matrix objects defined in CVXOPT must include the <code class="xref py py-const docutils literal notranslate"><span class="pre">cvxopt.h</span></code> header
+matrix objects defined in CVXOPT must include the <code class="xref py py-const docutils literal notranslate"><span class="pre">kvxopt.h</span></code> header
 file in the <code class="xref py py-const docutils literal notranslate"><span class="pre">src</span></code> directory of the distribution.</p>
 <p>Before the C API can be used in an extension module it must be initialized
 by calling the macro <code class="xref c c-macro docutils literal notranslate"><span class="pre">import_cvxopt</span></code>.  As an example we show the
@@ -127,7 +127,7 @@ the API:</p>
 </div>
 <section id="dense-matrices">
 <h2>Dense Matrices<a class="headerlink" href="#dense-matrices" title="Permalink to this heading"></a></h2>
-<p>As can be seen from the header file <code class="xref py py-const docutils literal notranslate"><span class="pre">cvxopt.h</span></code>, a <code class="xref py py-class docutils literal notranslate"><span class="pre">matrix</span></code> is
+<p>As can be seen from the header file <code class="xref py py-const docutils literal notranslate"><span class="pre">kvxopt.h</span></code>, a <code class="xref py py-class docutils literal notranslate"><span class="pre">matrix</span></code> is
 essentially a  structure with four fields.  The fields <code class="xref c c-member docutils literal notranslate"><span class="pre">nrows</span></code> and
 <code class="xref c c-member docutils literal notranslate"><span class="pre">ncols</span></code> are two integers that specify the dimensions.  The
 <code class="xref c c-member docutils literal notranslate"><span class="pre">id</span></code> field controls the type of the matrix and can have values
