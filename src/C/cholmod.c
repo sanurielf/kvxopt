@@ -21,7 +21,7 @@
 
 #define NO_ANSI99_COMPLEX
 
-#include "cvxopt.h"
+#include "kvxopt.h"
 #include "misc.h"
 #include "cholmod.h"
 #include "complex.h"

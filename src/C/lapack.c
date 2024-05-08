@@ -20,7 +20,7 @@
  */
 
 #include "Python.h"
-#include "cvxopt.h"
+#include "kvxopt.h"
 #include "misc.h"
 
 #ifndef _MSC_VER

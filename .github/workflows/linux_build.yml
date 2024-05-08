@@ -14,14 +14,14 @@ jobs:
       KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_DSDP: 1
       KVXOPT_BUILD_OSQP: 1
-      SUITESPARSE_VERSION: 7.2.1
-      SUITESPARSE_SHA256: 304e959a163ff74f8f4055dade3e0b5498d9aa3b1c483633bb400620f521509f
+      SUITESPARSE_VERSION: 7.7.0
+      SUITESPARSE_SHA256: 529b067f5d80981f45ddf6766627b8fc5af619822f068f342aab776e683df4f3
       OSQP_VERSION:  0.6.3
 
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10', '3.11']
         suite-sparse: [lib_suitesparse]
 
     steps:
@@ -81,12 +81,13 @@ jobs:
           pytest --cov=kvxopt --cov-report=xml tests/
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v4
         with:
           directory: ./coverage/reports/
           env_vars: OS,PYTHON
           files: ./coverage.xml
           fail_ci_if_error: true
           flags: unittests
-          name: codecov-kvxopt
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: sanurielf/kvxopt
           verbose: true

@@ -14,13 +14,13 @@ jobs:
       KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_OSQP: 1
       KVXOPT_BUILD_DSDP: 0
-      SUITESPARSE_VERSION: 7.2.1
-      SUITESPARSE_SHA256: 304e959a163ff74f8f4055dade3e0b5498d9aa3b1c483633bb400620f521509f
+      SUITESPARSE_VERSION: 7.7.0
+      SUITESPARSE_SHA256: 529b067f5d80981f45ddf6766627b8fc5af619822f068f342aab776e683df4f3
 
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10', '3.11']
         suite-sparse: [lib_suitesparse]
 
     steps:
@@ -55,7 +55,7 @@ jobs:
         run: |
             brew install suite-sparse
             brew list suite-sparse
-            echo "KVXOPT_SUITESPARSE_INC_DIR=$(brew --prefix)/include" >> $GITHUB_ENV
+            echo "KVXOPT_SUITESPARSE_INC_DIR=$(brew --prefix)/include/suitesparse" >> $GITHUB_ENV
             echo "KVXOPT_SUITESPARSE_LIB_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
 
         if: ${{ matrix.suite-sparse == 'lib_suitesparse' }}

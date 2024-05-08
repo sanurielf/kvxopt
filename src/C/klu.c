@@ -18,10 +18,9 @@
  */
 
 
-#include "cvxopt.h"
+#include "kvxopt.h"
 #include "klu.h"
 #include "misc.h"
-
 
 // KLU functions and  types/structures
 #if (SIZEOF_INT < SIZEOF_SIZE_T)
