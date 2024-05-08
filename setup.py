@@ -167,7 +167,6 @@ else:
     DLONG = False
 
 
-
 # Macros
 MACROS = []
 if BLAS_NOUNDERSCORES: MACROS.append(('BLAS_NO_UNDERSCORE',''))
@@ -293,19 +292,61 @@ else:
                   SUITESPARSE_SRC_DIR + '/SuiteSparse_config/SuiteSparse_config.c']
 
     if DLONG:
-        klu_sources += \
-            glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*_l*.c') +\
-            glob(SUITESPARSE_SRC_DIR + '/BTF/Source/*_l_*.c') +\
-            [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd_l.c'] +\
-            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_l.c'] +\
-            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_zl.c']
+        klu_sources += (
+            glob(SUITESPARSE_SRC_DIR + "/AMD/Source/*_l*.c")
+            + glob(SUITESPARSE_SRC_DIR + "/BTF/Source/*_l_*.c")
+            + [SUITESPARSE_SRC_DIR + "/COLAMD/Source/colamd_l.c"]
+            + [
+                SUITESPARSE_SRC_DIR + "/KLU/Source/" + x + ".c"
+                for x in [
+                    "klu_l",
+                    "klu_zl",
+                    "klu_l_kernel",
+                    "klu_zl_kernel",
+                    "klu_zl_factor",
+                    "klu_zl_solve",
+                    "klu_l_free_numeric",
+                    "klu_zl_free_numeric",
+                    "klu_l_analyze",
+                    "klu_l_defaults",
+                    "klu_l_solve",
+                    "klu_l_factor",
+                    "klu_zl_extract",
+                    "klu_zl_tsolve",
+                    "klu_l_tsolve",
+                    "klu_l_free_symbolic",
+                    "klu_l_extract",
+                ]
+            ]
+        )
     else:
-        klu_sources += \
-            glob(SUITESPARSE_SRC_DIR + '/AMD/Source/*[!_l]*.c') +\
-            glob(SUITESPARSE_SRC_DIR + '/BTF/Source/*[!_l_]*.c') +\
-            [SUITESPARSE_SRC_DIR + '/COLAMD/Source/colamd.c'] +\
-            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu.c'] +\
-            [SUITESPARSE_SRC_DIR + '/KLU/Source/klu_z.c']
+        klu_sources += (
+            glob(SUITESPARSE_SRC_DIR + "/AMD/Source/*[!_l]*.c")
+            + glob(SUITESPARSE_SRC_DIR + "/BTF/Source/*[!_l_]*.c")
+            + [SUITESPARSE_SRC_DIR + "/COLAMD/Source/colamd.c"]
+            + [
+                SUITESPARSE_SRC_DIR + "/KLU/Source/" + x + ".c"
+                for x in [
+                    "klu",
+                    "klu_z",
+                    "klu_analyze",
+                    "klu_kernel",
+                    "klu_z_kernel",
+                    "klu_free_numeric",
+                    "klu_z_free_numeric",
+                    "klu_defaults",
+                    "klu_solve",
+                    "klu_tsolve",
+                    "klu_z_solve",
+                    "klu_z_tsolve",
+                    "klu_factor",
+                    "klu_z_factor",
+                    "klu_extract",
+                    "klu_z_extract",
+                    "klu_free_symbolic",
+                ]
+            ]
+        )
 
     klu = Extension('klu',
         include_dirs = [ SUITESPARSE_SRC_DIR + '/KLU/Include',
