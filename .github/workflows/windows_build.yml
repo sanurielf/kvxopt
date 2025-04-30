@@ -62,7 +62,7 @@ jobs:
             cd ..\..
         shell: cmd
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: glpk-${{ matrix.ARCH }}
           path: |
@@ -97,7 +97,7 @@ jobs:
             cmake --build . --target install
         shell: cmd
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: osqp-${{ matrix.ARCH }}
           path: osqp/build/dist/*
@@ -128,7 +128,7 @@ jobs:
             cmake --build . --target install
         shell: cmd
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: gsl-${{ matrix.ARCH }}
           path: gsl/build/dist/*
@@ -240,7 +240,7 @@ jobs:
             tar -xf v${{ env.SUITESPARSE_VERSION }}.tar.gz
             echo "KVXOPT_SUITESPARSE_SRC_DIR=${{github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
         with:
           name: glpk-${{ matrix.ARCH }}
           path: glpk_lib
@@ -250,7 +250,7 @@ jobs:
             echo "KVXOPT_GLPK_LIB_DIR=${{github.workspace}}\glpk_lib\w64" >> $env:GITHUB_ENV
             echo "KVXOPT_GLPK_INC_DIR=${{github.workspace}}\glpk_lib\src" >> $env:GITHUB_ENV
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
         with:
           name: osqp-${{ matrix.ARCH }}
           path: osqp_lib
@@ -269,7 +269,7 @@ jobs:
           lib /machine:${{ matrix.ARCH }} /def:libfftw3-3.def
         shell: cmd
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
         with:
           name: gsl-${{ matrix.ARCH }}
           path: gsl_lib
