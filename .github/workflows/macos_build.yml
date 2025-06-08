@@ -83,6 +83,12 @@ jobs:
             echo "KVXOPT_OSQP_LIB_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
             echo "KVXOPT_OSQP_INC_DIR=$(brew --prefix)/include/osqp" >> $GITHUB_ENV
             echo "LD_LIBRARY_PATH=$(brew --prefix)/lib" >> $GITHUB_ENV
+            echo "DYLD_LIBRARY_PATH=$(brew --prefix)/lib:$DYLD_LIBRARY_PATH" >> $GITHUB_ENV
+
+      - name: Verify OSQP Library
+        run: |
+            ls -l $(brew --prefix)/lib/libosqp.dylib
+            otool -L $(brew --prefix)/lib/libosqp.dylib
 
       - name: Install
         run: |
