@@ -170,17 +170,11 @@ jobs:
           OPENBLAS_SHA256: fe656e5244dd3d8d4e58d5609c8bab2acde9281c16cee8e406a3ba381b1d5204
           FFTW_SHA256: 29882a43033c9393479a4df52a2e9120589c06a2b724155b1a682747fa3e57d4
 
-        - python-version: 3.8
-          PYTHON_TARGET: 3.8
-
         - python-version: 3.9
           PYTHON_TARGET: 3.9
 
-        - python-version: 3.10
-          PYTHON_TARGET: cpython-310
-
-        - python-version: 3.11
-          PYTHON_TARGET: cpython-311
+        - python-version: 3.13
+          PYTHON_TARGET: cpython-313
 
     steps:
       - uses: actions/checkout@v3
@@ -211,7 +205,7 @@ jobs:
             shasum -a 256 -c OpenBLAS.sha256
             mkdir src/python/.libs
             mkdir OpenBLAS
-            unzip OpenBLAS-${OPENBLAS_VERSION}_${{matrix.ARCH}}.zip -d OpenBLAS/
+            unzip OpenBLAS-${OPENBLAS_VERSION}_${{ matrix.ARCH }}.zip -d OpenBLAS/
             cp OpenBLAS/bin/libopenblas.dll src/python/.libs
             echo "KVXOPT_BLAS_LIB_DIR=${{ github.workspace }}/OpenBLAS/lib/" >> $GITHUB_ENV
             echo "KVXOPT_LAPACK_LIB=libopenblas" >> $GITHUB_ENV
