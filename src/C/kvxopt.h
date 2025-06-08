@@ -36,8 +36,8 @@
 #endif
 #endif
 
-#ifndef __CVXOPT__
-#define __CVXOPT__
+#ifndef __KVXOPT__
+#define __KVXOPT__
 
 #define INT       0
 #define DOUBLE    1

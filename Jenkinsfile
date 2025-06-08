@@ -33,7 +33,7 @@ pipeline {
             stage('Install python dependencies') {
               steps {
                 sh '''python -m pip install --upgrade pip
-                      pip install --upgrade pytest pytest-cov coveralls numpy'''
+                      pip install --upgrade setuptools setuptools_scm build wheel pytest pytest-cov coveralls numpy'''
               }
             }
 
@@ -124,7 +124,7 @@ pipeline {
             stage('Install python dependencies') {
               steps {
                 sh '''python3 -m pip install --upgrade pip
-                      pip3 install --upgrade pytest pytest-cov coveralls numpy'''
+                      pip3 install --upgrade setuptools setuptools_scm build wheel pytest pytest-cov coveralls numpy'''
               }
             }
 

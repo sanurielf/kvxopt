@@ -14,14 +14,16 @@ jobs:
       KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_OSQP: 1
       KVXOPT_BUILD_DSDP: 0
-      SUITESPARSE_VERSION: 7.7.0
-      SUITESPARSE_SHA256: 529b067f5d80981f45ddf6766627b8fc5af619822f068f342aab776e683df4f3
+      SUITESPARSE_VERSION: 7.8.2
+      SUITESPARSE_SHA256: 996c48c87baaeb5fc04bd85c7e66d3651a56fe749c531c60926d75b4db5d2181
+      OSQP_VERSION:  0.6.3
 
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.9','3.13']
         suite-sparse: [lib_suitesparse]
+
 
     steps:
       - uses: actions/checkout@v3
@@ -33,20 +35,18 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov coveralls numpy
+          pip install setuptools setuptools_scm build wheel pytest pytest-cov coveralls numpy
 
       - name: Install libraries
         run: |
-            brew install openblas glpk gsl fftw osqp
-            brew list openblas glpk gsl fftw osqp
+            brew install openblas glpk gsl fftw
+            brew list openblas glpk gsl fftw
             echo "KVXOPT_GSL_INC_DIR=$(brew --prefix)/include" >> $GITHUB_ENV
             echo "KVXOPT_GSL_LIB_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
             echo "KVXOPT_LAPACK_INC_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
             echo "KVXOPT_BLAS_LIB_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
             echo "KVXOPT_GLPK_INC_DIR=$(brew --prefix)/include" >> $GITHUB_ENV
             echo "KVXOPT_GLPK_LIB_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
-            echo "KVXOPT_OSQP_INC_DIR=$(brew --prefix)/include/osqp" >> $GITHUB_ENV
-            echo "KVXOPT_OSQP_LIB_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
             echo "KVXOPT_FFTW_INC_DIR=$(brew --prefix)/include" >> $GITHUB_ENV
             echo "KVXOPT_FFTW_LIB_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
 
@@ -68,6 +68,27 @@ jobs:
             tar -xf v${SUITESPARSE_VERSION}.tar.gz
             echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
         if: ${{ matrix.suite-sparse == 'src_suitesparse' }}
+
+      - name: Get OSQP source and compile library
+        run: |
+            git clone --recursive https://github.com/oxfordcontrol/osqp.git
+            cd osqp
+            git checkout v${{ env.OSQP_VERSION }}
+            git submodule sync --recursive
+            git -c protocol.version=2 submodule update --init --force --depth=1 --recursive
+            mkdir build
+            cd build
+            cmake -DCMAKE_INSTALL_PREFIX=$(brew --prefix) ..
+            sudo cmake --build . --target install
+            echo "KVXOPT_OSQP_LIB_DIR=$(brew --prefix)/lib" >> $GITHUB_ENV
+            echo "KVXOPT_OSQP_INC_DIR=$(brew --prefix)/include/osqp" >> $GITHUB_ENV
+            echo "LD_LIBRARY_PATH=$(brew --prefix)/lib" >> $GITHUB_ENV
+            echo "DYLD_LIBRARY_PATH=$(brew --prefix)/lib:$DYLD_LIBRARY_PATH" >> $GITHUB_ENV
+
+      - name: Verify OSQP Library
+        run: |
+            ls -l $(brew --prefix)/lib/libosqp.dylib
+            otool -L $(brew --prefix)/lib/libosqp.dylib
 
       - name: Install
         run: |
