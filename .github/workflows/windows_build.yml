@@ -139,20 +139,20 @@ jobs:
 
     runs-on: windows-2019
     env:
+      SUITESPARSE_VERSION: 7.8.2
+      SUITESPARSE_SHA256: e88077d6df43bc09755d06505f8a5145975eb0d9010fca9e8f68072574274fb1
       KVXOPT_BUILD_GSL: 1
       KVXOPT_BUILD_FFTW: 1
       KVXOPT_BUILD_GLPK: 1
       KVXOPT_BUILD_DSDP: 0
       KVXOPT_MSVC: 1
       KVXOPT_BUILD_OSQP: 1
-      SUITESPARSE_VERSION: 7.7.0
-      SUITESPARSE_SHA256: 529b067f5d80981f45ddf6766627b8fc5af619822f068f342aab776e683df4f3
       OPENBLAS_VERSION: 0.3.23
       FFTW_VERSION: 3.3.5
 
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9','3.13']
         suite-sparse: [src_suitesparse]
         ARCH: [x64, x86]
         include:
@@ -205,8 +205,8 @@ jobs:
       - name: Get openblas
         shell: msys2 {0}
         run: |
-            wget https://github.com/openmathlib/OpenBLAS/releases/download/v${OPENBLAS_VERSION}/OpenBLAS-${OPENBLAS_VERSION}-${{matrix.ARCH}}.zip
-            wget https://raw.githubusercontent.com/xianyi/OpenBLAS/v${OPENBLAS_VERSION}/LICENSE  -O OpenBLAS_LINCENSE
+            wget https://github.com/OpenMathLib/OpenBLAS/releases/download/v${OPENBLAS_VERSION}/OpenBLAS-${OPENBLAS_VERSION}-${{matrix.ARCH}}.zip
+            wget https://raw.githubusercontent.com/OpenMathLib/OpenBLAS/v${OPENBLAS_VERSION}/LICENSE  -O OpenBLAS_LINCENSE
             echo "${{matrix.OPENBLAS_SHA256}}  OpenBLAS-${OPENBLAS_VERSION}-${{ matrix.ARCH }}.zip" > OpenBLAS.sha256
             shasum -a 256 -c OpenBLAS.sha256
             mkdir src/python/.libs

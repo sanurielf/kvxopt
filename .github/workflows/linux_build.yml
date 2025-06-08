@@ -9,20 +9,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      KVXOPT_BUILD_GSL: 1
-      KVXOPT_BUILD_FFTW: 1
-      KVXOPT_BUILD_GLPK: 1
-      KVXOPT_BUILD_DSDP: 1
-      KVXOPT_BUILD_OSQP: 1
-      SUITESPARSE_VERSION: 7.7.0
-      SUITESPARSE_SHA256: 529b067f5d80981f45ddf6766627b8fc5af619822f068f342aab776e683df4f3
-      OSQP_VERSION:  0.6.3
+        KVXOPT_BUILD_GSL: 1
+        KVXOPT_BUILD_FFTW: 1
+        KVXOPT_BUILD_GLPK: 1
+        KVXOPT_BUILD_DSDP: 1
+        KVXOPT_BUILD_OSQP: 1
+        SUITESPARSE_VERSION: 7.8.2
+        SUITESPARSE_SHA256: 996c48c87baaeb5fc04bd85c7e66d3651a56fe749c531c60926d75b4db5d2181
+        OSQP_VERSION:  0.6.3
 
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9','3.13']
         suite-sparse: [lib_suitesparse]
+
 
     steps:
       - uses: actions/checkout@v3
