@@ -140,7 +140,7 @@ jobs:
     runs-on: windows-2019
     env:
       SUITESPARSE_VERSION: 7.8.2
-      SUITESPARSE_SHA256: e88077d6df43bc09755d06505f8a5145975eb0d9010fca9e8f68072574274fb1
+      SUITESPARSE_SHA256: 996c48c87baaeb5fc04bd85c7e66d3651a56fe749c531c60926d75b4db5d2181
       KVXOPT_BUILD_GSL: 1
       KVXOPT_BUILD_FFTW: 1
       KVXOPT_BUILD_GLPK: 1
@@ -205,15 +205,15 @@ jobs:
       - name: Get openblas
         shell: msys2 {0}
         run: |
-            wget https://github.com/OpenMathLib/OpenBLAS/releases/download/v${OPENBLAS_VERSION}/OpenBLAS-${OPENBLAS_VERSION}-${{matrix.ARCH}}.zip
+            wget https://github.com/OpenMathLib/OpenBLAS/releases/download/v${OPENBLAS_VERSION}/OpenBLAS-${OPENBLAS_VERSION}_${{ matrix.ARCH }}.zip
             wget https://raw.githubusercontent.com/OpenMathLib/OpenBLAS/v${OPENBLAS_VERSION}/LICENSE  -O OpenBLAS_LINCENSE
-            echo "${{matrix.OPENBLAS_SHA256}}  OpenBLAS-${OPENBLAS_VERSION}-${{ matrix.ARCH }}.zip" > OpenBLAS.sha256
+            echo "${{ matrix.OPENBLAS_SHA256 }}  OpenBLAS-${OPENBLAS_VERSION}_${{ matrix.ARCH }}.zip" > OpenBLAS.sha256
             shasum -a 256 -c OpenBLAS.sha256
             mkdir src/python/.libs
             mkdir OpenBLAS
-            unzip OpenBLAS-${OPENBLAS_VERSION}-${{matrix.ARCH}}.zip -d OpenBLAS/
+            unzip OpenBLAS-${OPENBLAS_VERSION}_${{matrix.ARCH}}.zip -d OpenBLAS/
             cp OpenBLAS/bin/libopenblas.dll src/python/.libs
-            echo "KVXOPT_BLAS_LIB_DIR=${{github.workspace}}/OpenBLAS/lib/" >> $GITHUB_ENV
+            echo "KVXOPT_BLAS_LIB_DIR=${{ github.workspace }}/OpenBLAS/lib/" >> $GITHUB_ENV
             echo "KVXOPT_LAPACK_LIB=libopenblas" >> $GITHUB_ENV
             echo "KVXOPT_BLAS_LIB=libopenblas" >> $GITHUB_ENV
 
