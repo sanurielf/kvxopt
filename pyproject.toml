@@ -1,28 +1,65 @@
 [build-system]
-requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=64", "wheel", "setuptools_scm[toml]>=6.2", "numpy>=1.19.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "kvxopt"
+dynamic = ["version"]
+description = "Convex optimization package"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.19.0"]
 
 [tool.setuptools_scm]
 write_to = "src/python/_version.py"
 
-[kvxopt]
-kvxopt = ["version"]
-
 [tool.cibuildwheel]
-test-requires = "pytest"
-test-command = "pytest {project}/tests"
+build = "cp39-* cp310-* cp311-* cp312-* cp313-*"
+skip = ["cp*-win32", "cp*-manylinux_i686", "pp*", "*-musllinux*"]
+test-requires = ["numpy"]
 
-[tool.cibuildwheel.linux]
-archs = "x86_64 aarch64"
-manylinux-x86_64-image = "manylinux_2_28"
-manylinux-aarch64-image = "manylinux_2_28"
-environment = {KVXOPT_BUILD_DSDP="1", KVXOPT_BUILD_FFTW="1", KVXOPT_BUILD_GLPK="1", KVXOPT_BUILD_GSL="1", KVXOPT_BLAS_LIB="openblas", KVXOPT_LAPACK_LIB="openblas", KVXOPT_DSDP_LIB_DIR="/usr/local/lib"}
-before-all = "./.ci-support/before_all_linux.sh"
+[tool.cibuildwheel.environment]
+KVXOPT_BUILD_GSL = "1"
+KVXOPT_BUILD_FFTW = "1"
+KVXOPT_BUILD_GLPK = "1"
+KVXOPT_BUILD_OSQP = "1"
+KVXOPT_BUILD_DSDP = "0"
+KVXOPT_BLAS_LIB = "openblas"
+KVXOPT_LAPACK_LIB = "openblas"
 
-[tool.cibuildwheel.macos]
-environment = {KVXOPT_BUILD_DSDP="1", KVXOPT_BUILD_FFTW="1", KVXOPT_BUILD_GLPK="1", KVXOPT_BUILD_GSL="1", KVXOPT_DSDP_LIB_DIR="/usr/local/lib"}
-before-all = "./.ci-support/before_all_macos.sh"
+# [tool.cibuildwheel.windows.environment]
+# KVXOPT_BUILD_GSL = "0"
+# KVXOPT_BUILD_FFTW = "0"
+# KVXOPT_BUILD_GLPK = "0"
+# KVXOPT_BUILD_OSQP = "0"
+# KVXOPT_BUILD_DSDP = "0"
 
-[tool.cibuildwheel.windows]
-environment = {KVXOPT_BUILD_DSDP="0", KVXOPT_BUILD_FFTW="0", KVXOPT_BUILD_GLPK="1", KVXOPT_BUILD_GSL="1", KVXOPT_MSVC="1"}
-before-all = ".ci-support\before_all_windows.bat"
+
+# [tool.cibuildwheel.macos.environment]
+# KVXOPT_BUILD_GSL = "1"
+# KVXOPT_BUILD_FFTW = "1"
+# KVXOPT_BUILD_GLPK = "1"
+# KVXOPT_BUILD_OSQP = "1"
+# KVXOPT_BUILD_DSDP = "0"
+# KVXOPT_BLAS_LIB = "openblas"
+# KVXOPT_LAPACK_LIB = "openblas"
+# KVXOPT_SUITESPARSE_LIB_DIR = "$(brew --prefix suite-sparse)/lib"
+
+
+[tool.cibuildwheel.linux.environment]
+KVXOPT_BUILD_GSL = "1"
+KVXOPT_BUILD_FFTW = "1"
+KVXOPT_BUILD_GLPK = "1"
+KVXOPT_BUILD_OSQP = "1"
+KVXOPT_BUILD_DSDP = "0"
+KVXOPT_BLAS_LIB = "openblas"
+KVXOPT_LAPACK_LIB = "openblas"
+KVXOPT_BLAS_LIB_DIR = "/usr/lib64/:/usr/lib/x86_64-linux-gnu/"
+KVXOPT_GLPK_LIB_DIR = "/usr/lib64/:/usr/lib/x86_64-linux-gnu/"
+KVXOPT_GSL_LIB_DIR = "/usr/lib64/:/usr/lib/x86_64-linux-gnu/"
+KVXOPT_FFTW_LIB_DIR = "/usr/lib64/:/usr/lib/x86_64-linux-gnu/"
+KVXOPT_OSQP_LIB_DIR = "/usr/local/lib/:/usr/local/lib64/"
+KVXOPT_OSQP_INC_DIR = "/usr/local/include/osqp/"
+KVXOPT_SUITESPARSE_LIB_DIR = "/usr/lib64/:/usr/lib/x86_64-linux-gnu/"
+KVXOPT_SUITESPARSE_INC_DIR = "/usr/include/suitesparse/"
+

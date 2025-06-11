@@ -1,0 +1,305 @@
+name: Build wheels
+
+on:
+  push:
+    branches: [ master, dev ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      build_commit:
+        description: 'Commit/tag to build from kvxopt repo'
+        required: true
+        default: 'master'
+      upload_test_pypi:
+        description: 'Upload to TestPyPI (1=yes, 0=no)'
+        required: true
+        default: '1'
+      upload_official_pypi:
+        description: 'Upload to PyPI (1=yes, 0=no)'
+        required: true
+        default: '0'
+
+jobs:
+  config:
+    name: Load configuration
+    runs-on: ubuntu-latest
+    outputs:
+      build_commit: ${{ steps.config.outputs.build_commit }}
+      upload_test_pypi: ${{ steps.config.outputs.upload_test_pypi }}
+      upload_official_pypi: ${{ steps.config.outputs.upload_official_pypi }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load and set configuration
+        id: config
+        shell: bash
+        run: |
+          # Source configuration files using bash[3]
+          bash -c "source .ci/config/build.env && source .ci/config/versions.env"
+
+          # Load variables manually since sourcing doesn't persist
+          BUILD_COMMIT=$(bash -c "source .ci/config/build.env && echo \$BUILD_COMMIT")
+          UPLOAD_TO_TEST_PYPI=$(bash -c "source .ci/config/build.env && echo \$UPLOAD_TO_TEST_PYPI")
+          UPLOAD_TO_OFFI_PYPI=$(bash -c "source .ci/config/build.env && echo \$UPLOAD_TO_OFFI_PYPI")
+
+          # Override with workflow inputs if provided
+          if [ -n "${{ github.event.inputs.build_commit }}" ]; then
+            BUILD_COMMIT="${{ github.event.inputs.build_commit }}"
+          fi
+          if [ -n "${{ github.event.inputs.upload_test_pypi }}" ]; then
+            UPLOAD_TO_TEST_PYPI="${{ github.event.inputs.upload_test_pypi }}"
+          fi
+          if [ -n "${{ github.event.inputs.upload_official_pypi }}" ]; then
+            UPLOAD_TO_OFFI_PYPI="${{ github.event.inputs.upload_official_pypi }}"
+          fi
+
+          # Set outputs for other jobs to use
+          echo "build_commit=${BUILD_COMMIT}" >> $GITHUB_OUTPUT
+          echo "upload_test_pypi=${UPLOAD_TO_TEST_PYPI}" >> $GITHUB_OUTPUT
+          echo "upload_official_pypi=${UPLOAD_TO_OFFI_PYPI}" >> $GITHUB_OUTPUT
+
+          # Display configuration
+          echo "Build commit: ${BUILD_COMMIT}"
+          echo "Upload to TestPyPI: ${UPLOAD_TO_TEST_PYPI}"
+          echo "Upload to PyPI: ${UPLOAD_TO_OFFI_PYPI}"
+
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    needs: config
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: x86_64
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: aarch64
+          - os: macos-13
+            platform: macos
+            arch: x86_64
+          - os: macos-14
+            platform: macos
+            arch: arm64
+          - os: windows-latest
+            platform: windows
+            arch: AMD64
+            cmake_target: x64
+            vc_target: x64
+            glpk_target: w64
+            fftw_target: 64
+          - os: windows-latest
+            platform: windows
+            arch: x86
+            cmake_target: Win32
+            vc_target: x86
+            glpk_target: w32
+            fftw_target: 32
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Checkout the specific commit from main kvxopt repo
+      - name: Checkout kvxopt source
+        uses: actions/checkout@v4
+        with:
+          repository: 'sanurielf/kvxopt'
+          ref: ${{ needs.config.outputs.build_commit }}
+          path: kvxopt-src
+
+      - name: Set up QEMU for cross-compilation
+        if: runner.os == 'Linux' && runner.arch == 'X64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+
+      - name: Load build configuration
+        shell: bash
+        run: |
+          # Source configuration files using bash[3]
+          source .ci/config/build.env
+          source .ci/config/versions.env
+
+          # Export all variables to GITHUB_ENV for subsequent steps
+          grep '^export ' .ci/config/versions.env | sed 's/export //' >> $GITHUB_ENV
+          echo "ARCH=${{ matrix.arch }}" >> $GITHUB_ENV
+          echo "BUILD_COMMIT=${{ needs.config.outputs.build_commit }}" >> $GITHUB_ENV
+
+      - name: Set macOS deployment target
+        if: runner.os == 'macOS'
+        run: |
+            if [[ "${{ matrix.os }}" == "macos-13" ]]; then
+                echo "MACOSX_DEPLOYMENT_TARGET=13.0" >> $GITHUB_ENV
+            elif [[ "${{ matrix.os }}" == "macos-14" ]]; then
+                echo "MACOSX_DEPLOYMENT_TARGET=14.0" >> $GITHUB_ENV
+            fi
+
+      # Copy source to build location
+      - name: Prepare source for building
+        shell: bash
+        run: |
+          cp -r kvxopt-src/* .
+          cd kvxopt-src
+          echo "Building from commit: $(git rev-parse HEAD)"
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.23.3
+        env:
+          CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-*"
+          CIBW_SKIP: "cp*-manylinux_i686 pp*"
+          CIBW_ARCHS_LINUX: ${{ matrix.arch }}
+          CIBW_ARCHS_MACOS: ${{ matrix.arch }}
+          CIBW_ARCHS_WINDOWS: ${{ matrix.arch }}
+
+
+
+          CIBW_ENVIRONMENT_MACOS: >
+            MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}
+            KVXOPT_BUILD_GLPK=1
+            KVXOPT_BUILD_FFTW=1
+            KVXOPT_BUILD_OSQP=1
+            KVXOPT_BUILD_GSL=1
+
+          CIBW_ENVIRONMENT_WINDOWS: >
+            WINDOWS_CMAKE_TARGET=${{ matrix.cmake_target || 'Win32' }}
+            WINDOWS_VC_TARGET=${{ matrix.vc_target || '32' }}
+            WINDOWS_GLPK_TARGET=${{ matrix.glpk_target || '32' }}
+            WINDOWS_FFTW_TARGET=${{ matrix.fftw_target || '32' }}
+            KVXOPT_GSL_INC_DIR=C:/gsl-install/include
+            KVXOPT_GSL_LIB_DIR=C:/gsl-install/lib/Debug
+            KVXOPT_GLPK_INC_DIR=C:/glpk-install/include
+            KVXOPT_GLPK_LIB_DIR=C:/glpk-install/lib
+            KVXOPT_OSQP_INC_DIR=C:/osqp-install/include/osqp
+            KVXOPT_OSQP_LIB_DIR=C:/osqp-install/lib
+            KVXOPT_BLAS_LIB_DIR=C:/openblas-install/lib
+            KVXOPT_BLAS_INC_DIR=C:/openblas-install/include
+            KVXOPT_LAPACK_LIB_DIR=C:/openblas-install/lib
+            KVXOPT_FFTW_INC_DIR=C:/fftw-install
+            KVXOPT_FFTW_LIB_DIR=C:/fftw-install
+            KVXOPT_FFTW_LIB=libfftw3-3
+            ARCH=${{ matrix.arch }}
+            KVXOPT_LAPACK_LIB=libopenblas
+            KVXOPT_BLAS_LIB=libopenblas
+            VCPKG_DEFAULT_TRIPLET=${{ matrix.vc_target ||'x64' }}-windows
+            KVXOPT_SUITESPARSE_SRC_DIR="./suitesparse"
+            KVXOPT_MSVC=1
+            KVXOPT_BUILD_GSL=1
+            KVXOPT_BUILD_FFTW=1
+            KVXOPT_BUILD_GLPK=1
+            KVXOPT_BUILD_OSQP=1
+            KVXOPT_BUILD_DSDP=0
+
+
+          # Use bash command for cibuildwheel script execution[3][5]
+          CIBW_BEFORE_ALL: bash .ci/scripts/install_dependencies.sh ${{ matrix.platform }} ${{ matrix.arch }}
+          CIBW_BEFORE_ALL_WINDOWS: "\".ci/scripts/install_dependencies.bat\" ${{ matrix.platform }} ${{ matrix.arch }}"
+          CIBW_TEST_COMMAND: python -c "from kvxopt import blas,lapack,glpk,osqp,fftw,gsl,cholmod,umfpack,klu; print('kvxopt import successful')"
+          CIBW_TEST_REQUIRES: numpy
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-${{ matrix.os }}-${{ matrix.arch }}
+          path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    needs: config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout kvxopt source
+        uses: actions/checkout@v4
+        with:
+          repository: 'sanurielf/kvxopt'
+          ref: ${{ needs.config.outputs.build_commit }}
+          path: kvxopt-src
+
+      - name: Build sdist
+        run: |
+          cd kvxopt-src
+          pipx run build --sdist
+          cp dist/* ../dist/ || mkdir -p ../dist && cp dist/* ../dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-sdist
+          path: dist/*.tar.gz
+
+  upload_test_pypi:
+    name: Upload to TestPyPI
+    needs: [config, build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    if: >
+      always() &&
+      (needs.build_wheels.result == 'success') &&
+      (needs.build_sdist.result == 'success') &&
+      (needs.config.outputs.upload_test_pypi == '1')
+
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/kvxopt
+
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cibw-*
+          path: dist
+          merge-multiple: true
+
+      - name: Display upload info
+        run: |
+          echo "Uploading to TestPyPI:"
+          echo "Build commit: ${{ needs.config.outputs.build_commit }}"
+          echo "Files to upload:"
+          ls -la dist/
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+
+  upload_pypi:
+    name: Upload to PyPI
+    needs: [config, build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    if: >
+      always() &&
+      (needs.build_wheels.result == 'success') &&
+      (needs.build_sdist.result == 'success') &&
+      (needs.config.outputs.upload_official_pypi == '1')
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/kvxopt
+
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cibw-*
+          path: dist
+          merge-multiple: true
+
+      - name: Display upload info
+        run: |
+          echo "Uploading to PyPI:"
+          echo "Build commit: ${{ needs.config.outputs.build_commit }}"
+          echo "Files to upload:"
+          ls -la dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
