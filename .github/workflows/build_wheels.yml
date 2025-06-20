@@ -5,20 +5,6 @@ on:
     branches: [ master, dev ]
   pull_request:
     branches: [ master ]
-  workflow_dispatch:
-    inputs:
-      build_commit:
-        description: 'Commit/tag to build from kvxopt repo'
-        required: true
-        default: 'master'
-      upload_test_pypi:
-        description: 'Upload to TestPyPI (1=yes, 0=no)'
-        required: true
-        default: '1'
-      upload_official_pypi:
-        description: 'Upload to PyPI (1=yes, 0=no)'
-        required: true
-        default: '0'
 
 jobs:
   config:
@@ -26,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       build_commit: ${{ steps.config.outputs.build_commit }}
+      scm_version: ${{ steps.config.outputs.scm_version }}
       upload_test_pypi: ${{ steps.config.outputs.upload_test_pypi }}
       upload_official_pypi: ${{ steps.config.outputs.upload_official_pypi }}
     steps:
@@ -43,27 +30,20 @@ jobs:
 
           # Load variables manually since sourcing doesn't persist
           BUILD_COMMIT=$(bash -c "source .ci/config/build.env && echo \$BUILD_COMMIT")
+          SETUPTOOLS_SCM_PRETEND_VERSION=$(bash -c "source .ci/config/build.env && echo \$SETUPTOOLS_SCM_PRETEND_VERSION")
           UPLOAD_TO_TEST_PYPI=$(bash -c "source .ci/config/build.env && echo \$UPLOAD_TO_TEST_PYPI")
           UPLOAD_TO_OFFI_PYPI=$(bash -c "source .ci/config/build.env && echo \$UPLOAD_TO_OFFI_PYPI")
 
-          # Override with workflow inputs if provided
-          if [ -n "${{ github.event.inputs.build_commit }}" ]; then
-            BUILD_COMMIT="${{ github.event.inputs.build_commit }}"
-          fi
-          if [ -n "${{ github.event.inputs.upload_test_pypi }}" ]; then
-            UPLOAD_TO_TEST_PYPI="${{ github.event.inputs.upload_test_pypi }}"
-          fi
-          if [ -n "${{ github.event.inputs.upload_official_pypi }}" ]; then
-            UPLOAD_TO_OFFI_PYPI="${{ github.event.inputs.upload_official_pypi }}"
-          fi
 
           # Set outputs for other jobs to use
           echo "build_commit=${BUILD_COMMIT}" >> $GITHUB_OUTPUT
+          echo "scm_version=${SETUPTOOLS_SCM_PRETEND_VERSION}" >> $GITHUB_OUTPUT
           echo "upload_test_pypi=${UPLOAD_TO_TEST_PYPI}" >> $GITHUB_OUTPUT
           echo "upload_official_pypi=${UPLOAD_TO_OFFI_PYPI}" >> $GITHUB_OUTPUT
 
           # Display configuration
           echo "Build commit: ${BUILD_COMMIT}"
+          echo "SCM Pretend Version: ${SETUPTOOLS_SCM_PRETEND_VERSION}"
           echo "Upload to TestPyPI: ${UPLOAD_TO_TEST_PYPI}"
           echo "Upload to PyPI: ${UPLOAD_TO_OFFI_PYPI}"
 
@@ -145,8 +125,11 @@ jobs:
           CIBW_ARCHS_LINUX: ${{ matrix.arch }}
           CIBW_ARCHS_MACOS: ${{ matrix.arch }}
           CIBW_ARCHS_WINDOWS: ${{ matrix.arch }}
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ needs.config.outputs.scm_version }}
 
 
+          CIBW_ENVIRONMENT_PASS_LINUX:
+            SETUPTOOLS_SCM_PRETEND_VERSION
 
           CIBW_ENVIRONMENT_MACOS: >
             MACOSX_DEPLOYMENT_TARGET=${{ matrix.macos_target }}
@@ -212,6 +195,8 @@ jobs:
         run: |
           pipx run build --sdist
           cp dist/* ../dist/ || mkdir -p ../dist && cp dist/* ../dist/
+        env:
+            SETUPTOOLS_SCM_PRETEND_VERSION: ${{ needs.config.outputs.scm_version }}
 
       - uses: actions/upload-artifact@v4
         with:
