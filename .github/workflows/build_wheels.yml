@@ -109,6 +109,8 @@ jobs:
           repository: 'sanurielf/kvxopt'
           ref: ${{ needs.config.outputs.build_commit }}
           path: kvxopt-src
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Set up QEMU for cross-compilation
         if: runner.os == 'Linux' && runner.arch == 'X64'
@@ -217,6 +219,8 @@ jobs:
           repository: 'sanurielf/kvxopt'
           ref: ${{ needs.config.outputs.build_commit }}
           path: kvxopt-src
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Build sdist
         run: |
