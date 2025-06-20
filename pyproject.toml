@@ -5,7 +5,26 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "kvxopt"
 dynamic = ["version"]
-description = "Convex optimization package"
+description = "Convex optimization package and Suite Sparse interface"
+license = "GPL-3.0-or-later"
+authors = [
+    { name = "M. Andersen", email = "martin.skovgaard.andersen@gmail.com"},
+    { name = "J. Dahl" , email = "dahl.joachim@gmail.com"},
+    { name = "L. Vandenberghe", email = "vandenbe@ee.ucla.edu" },
+    { name = "U. Sandoval", email = "sanurielf@gmail.com" }
+]
+classifiers = [
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Science/Research",
+        "Operating System :: OS Independent",
+        "Programming Language :: C",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Topic :: Scientific/Engineering"
+        ]
+urls = { "Source" = "https://github.com/sanurielf/kvxopt" }
+
+
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = ["numpy>=1.19.0"]
