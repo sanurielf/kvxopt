@@ -96,13 +96,13 @@ jobs:
             vc_target: x64
             glpk_target: w64
             fftw_target: 64
-          - os: windows-latest
-            platform: windows
-            arch: x86
-            cmake_target: Win32
-            vc_target: x86
-            glpk_target: w32
-            fftw_target: 32
+        #   - os: windows-latest
+        #     platform: windows
+        #     arch: x86
+        #     cmake_target: Win32
+        #     vc_target: x86
+        #     glpk_target: w32
+        #     fftw_target: 32
 
     steps:
       # Checkout the specific commit from main kvxopt repo
@@ -142,8 +142,6 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23.3
         env:
-          CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-*"
-          CIBW_SKIP: "cp*-manylinux_i686 pp*"
           CIBW_ARCHS_LINUX: ${{ matrix.arch }}
           CIBW_ARCHS_MACOS: ${{ matrix.arch }}
           CIBW_ARCHS_WINDOWS: ${{ matrix.arch }}
@@ -190,8 +188,6 @@ jobs:
           # Use bash command for cibuildwheel script execution[3][5]
           CIBW_BEFORE_ALL: bash .ci/scripts/install_dependencies.sh ${{ matrix.platform }} ${{ matrix.arch }}
           CIBW_BEFORE_ALL_WINDOWS: "\".ci/scripts/install_dependencies.bat\" ${{ matrix.platform }} ${{ matrix.arch }}"
-          CIBW_TEST_COMMAND: python -c "from kvxopt import blas,lapack,glpk,osqp,fftw,gsl,cholmod,umfpack,klu; print('kvxopt import successful')"
-          CIBW_TEST_REQUIRES: numpy
 
       - uses: actions/upload-artifact@v4
         with:

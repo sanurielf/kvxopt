@@ -16,8 +16,12 @@ local_scheme = "no-local-version"
 
 [tool.cibuildwheel]
 build = "cp39-* cp310-* cp311-* cp312-* cp313-*"
-skip = ["cp*-win32", "cp*-manylinux_i686", "pp*", "*-musllinux*"]
-test-requires = ["numpy"]
+skip = ["cp*-win32", "cp*-manylinux_i686", "pp*"]
+test-requires = ["numpy", "pytest"]
+test-command = [
+    "python -c \"from kvxopt import blas,lapack,glpk,osqp,fftw,gsl,cholmod,umfpack,klu; print('kvxopt import successful')\"",
+    "pytest {project}/tests"
+]
 
 [tool.cibuildwheel.environment]
 KVXOPT_BUILD_GSL = "1"
