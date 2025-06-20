@@ -2,8 +2,6 @@ name: Linux build
 on:
   push:
     branches: [ master, dev ]
-  schedule:
-    - cron: '0 0 * * 0'
 
 jobs:
   build:
@@ -14,15 +12,12 @@ jobs:
         KVXOPT_BUILD_GLPK: 1
         KVXOPT_BUILD_DSDP: 1
         KVXOPT_BUILD_OSQP: 1
-        SUITESPARSE_VERSION: 7.8.2
-        SUITESPARSE_SHA256: 996c48c87baaeb5fc04bd85c7e66d3651a56fe749c531c60926d75b4db5d2181
-        OSQP_VERSION:  0.6.3
 
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9','3.13']
-        suite-sparse: [lib_suitesparse]
+        python-version: ['3.13']
+        suite-sparse: [lib_suitesparse, src_suitesparse]
 
 
     steps:
@@ -31,6 +26,15 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Load and set versions
+        id: config
+        shell: bash
+        run: |
+            source .ci/config/versions.env
+
+            grep '^export ' .ci/config/versions.env | sed 's/export //' >> $GITHUB_ENV
+
 
       - name: Install dependencies
         run: |
@@ -52,7 +56,7 @@ jobs:
             echo "${SUITESPARSE_SHA256}  v${SUITESPARSE_VERSION}.tar.gz" > SuiteSparse.sha256
             shasum -a 256 -c SuiteSparse.sha256
             tar -xf v${SUITESPARSE_VERSION}.tar.gz
-            echo "KVXOPT_SUITESPARSE_SRC_DIR=${{ github.workspace}}/SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
+            echo "KVXOPT_SUITESPARSE_SRC_DIR=./SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
         if: ${{ matrix.suite-sparse == 'src_suitesparse' }}
 
       - name: Get OSQP source and compile library

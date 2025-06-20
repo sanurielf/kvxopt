@@ -474,11 +474,7 @@ applications straightforward by building on Python's extensive standard
 library and on the strengths of Python as a high-level programming
 language.
 ''',
-    author = 'M. Andersen, J. Dahl, L. Vandenberghe, and U. Sandoval',
-    author_email = 'martin.skovgaard.andersen@gmail.com, dahl.joachim@gmail.com, vandenbe@ee.ucla.edu, sanurielf@gmail.com',
     url = '',
-    project_urls = {'Source': 'https://github.com/sanurielf/kvxopt'},
-    license = 'GNU GPL version 3',
     ext_package = "kvxopt",
     ext_modules = extmods,
     package_dir = {"kvxopt": "src/python"},
@@ -486,15 +482,5 @@ language.
     packages = ["kvxopt"],
     python_requires=PYTHON_REQUIRES,
     install_requires = INSTALL_REQUIRES,
-    classifiers=[
-        'Development Status :: 5 - Production/Stable',
-        'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-        'Operating System :: OS Independent',
-        'Programming Language :: C',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 3',
-        'Topic :: Scientific/Engineering',
-        ],
     zip_safe=False
     )
