@@ -12,6 +12,7 @@ dependencies = ["numpy>=1.19.0"]
 
 [tool.setuptools_scm]
 write_to = "src/python/_version.py"
+local_scheme = "no-local-version"
 
 [tool.cibuildwheel]
 build = "cp39-* cp310-* cp311-* cp312-* cp313-*"

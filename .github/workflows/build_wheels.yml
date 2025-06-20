@@ -111,7 +111,7 @@ jobs:
         with:
           repository: 'sanurielf/kvxopt'
           ref: ${{ needs.config.outputs.build_commit }}
-          path: kvxopt-src
+          path: .
           fetch-depth: 0
           fetch-tags: true
 
@@ -137,8 +137,6 @@ jobs:
       - name: Prepare source for building
         shell: bash
         run: |
-          cp -r kvxopt-src/* .
-          cd kvxopt-src
           echo "Building from commit: $(git rev-parse HEAD)"
 
       - name: Build wheels
@@ -210,13 +208,12 @@ jobs:
         with:
           repository: 'sanurielf/kvxopt'
           ref: ${{ needs.config.outputs.build_commit }}
-          path: kvxopt-src
+          path: .
           fetch-depth: 0
           fetch-tags: true
 
       - name: Build sdist
         run: |
-          cd kvxopt-src
           pipx run build --sdist
           cp dist/* ../dist/ || mkdir -p ../dist && cp dist/* ../dist/
 
@@ -262,6 +259,8 @@ jobs:
         with:
           repository-url: https://test.pypi.org/legacy/
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          verbose: true
+          skip-existing: true
 
   upload_pypi:
     name: Upload to PyPI
