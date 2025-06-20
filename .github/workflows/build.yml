@@ -1,0 +1,98 @@
+name: Linux build
+on:
+  push:
+    branches: [ master, dev ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+        KVXOPT_BUILD_GSL: 1
+        KVXOPT_BUILD_FFTW: 1
+        KVXOPT_BUILD_GLPK: 1
+        KVXOPT_BUILD_DSDP: 1
+        KVXOPT_BUILD_OSQP: 1
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.13']
+        suite-sparse: [lib_suitesparse, src_suitesparse]
+
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Load and set versions
+        id: config
+        shell: bash
+        run: |
+            source .ci/config/versions.env
+
+            grep '^export ' .ci/config/versions.env | sed 's/export //' >> $GITHUB_ENV
+
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools setuptools_scm build wheel pytest pytest-cov coveralls numpy
+
+      - name: Install libraries
+        run: |
+            sudo apt-get install libopenblas-dev libfftw3-dev libglpk-dev libdsdp-dev libgsl0-dev
+
+      - name: Config suite-sparse library
+        run:
+            sudo apt-get install libsuitesparse-dev
+        if: ${{ matrix.suite-sparse == 'lib_suitesparse' }}
+
+      - name: Config suite-sparse source
+        run: |
+            wget https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/v${SUITESPARSE_VERSION}.tar.gz
+            echo "${SUITESPARSE_SHA256}  v${SUITESPARSE_VERSION}.tar.gz" > SuiteSparse.sha256
+            shasum -a 256 -c SuiteSparse.sha256
+            tar -xf v${SUITESPARSE_VERSION}.tar.gz
+            echo "KVXOPT_SUITESPARSE_SRC_DIR=./SuiteSparse-${{ env.SUITESPARSE_VERSION }}" >> $GITHUB_ENV
+        if: ${{ matrix.suite-sparse == 'src_suitesparse' }}
+
+      - name: Get OSQP source and compile library
+        run: |
+            git clone --recursive https://github.com/oxfordcontrol/osqp.git
+            cd osqp
+            git checkout v${{ env.OSQP_VERSION }}
+            git submodule sync --recursive
+            git -c protocol.version=2 submodule update --init --force --depth=1 --recursive
+            mkdir build
+            cd build
+            cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
+            sudo cmake --build . --target install
+            echo "KVXOPT_OSQP_LIB_DIR=/usr/local/lib" >> $GITHUB_ENV
+            echo "KVXOPT_OSQP_INC_DIR=/usr/local/include/osqp" >> $GITHUB_ENV
+            echo "LD_LIBRARY_PATH=/usr/local/lib" >> $GITHUB_ENV
+
+      - name: Install
+        run: |
+          python setup.py build
+          pip install .
+
+      - name: Test
+        run: |
+          echo ${KVXOPT_SUITESPARSE_SRC_DIR}
+          python -c 'from kvxopt import blas,dsdp,lapack,glpk,osqp,fftw,gsl,cholmod,umfpack,klu'
+          pytest --cov=kvxopt --cov-report=xml tests/
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          directory: ./coverage/reports/
+          env_vars: OS,PYTHON
+          files: ./coverage.xml
+          fail_ci_if_error: true
+          flags: unittests
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: sanurielf/kvxopt
+          verbose: true
