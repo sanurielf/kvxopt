@@ -25,20 +25,21 @@ if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; t
             ;;
     esac
 
-    echo "Downloading OpenBLAS-${OPENBLAS_VERSION}_${OPENBLAS_ARCH}.zip..."
+    echo "Downloading OpenBLAS-${OPENBLAS_VERSION}-${OPENBLAS_ARCH}.zip..."
 
     # Download OpenBLAS binary
-    curl -L -o "openblas_${OPENBLAS_ARCH}.zip" \
-        "https://github.com/OpenMathLib/OpenBLAS/releases/download/v${OPENBLAS_VERSION}/OpenBLAS-${OPENBLAS_VERSION}_${OPENBLAS_ARCH}.zip"
+    # https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.30/OpenBLAS-0.3.30-x64.zip
+    curl -L -o "openblas-${OPENBLAS_ARCH}.zip" \
+        "https://github.com/OpenMathLib/OpenBLAS/releases/download/v${OPENBLAS_VERSION}/OpenBLAS-${OPENBLAS_VERSION}-${OPENBLAS_ARCH}.zip"
 
     # Verify download was successful
-    if [ ! -f "openblas_${OPENBLAS_ARCH}.zip" ] || [ $(stat -c%s "openblas_${OPENBLAS_ARCH}.zip" 2>/dev/null || echo 0) -lt 1000 ]; then
+    if [ ! -f "openblas-${OPENBLAS_ARCH}.zip" ] || [ $(stat -c%s "openblas-${OPENBLAS_ARCH}.zip" 2>/dev/null || echo 0) -lt 1000 ]; then
         echo "Error: OpenBLAS download failed or file is too small"
         exit 1
     fi
 
     echo "Verifying SHA256 checksum using certutil..."
-    ACTUAL_HASH=$(certutil -hashfile "openblas_${OPENBLAS_ARCH}.zip" SHA256 | grep -v "SHA256" | grep -v "CertUtil" | tr -d ' \r\n' | tr '[:upper:]' '[:lower:]')
+    ACTUAL_HASH=$(certutil -hashfile "openblas-${OPENBLAS_ARCH}.zip" SHA256 | grep -v "SHA256" | grep -v "CertUtil" | tr -d ' \r\n' | tr '[:upper:]' '[:lower:]')
     EXPECTED_HASH=$(echo "${OPENBLAS_SHA256}" | tr '[:upper:]' '[:lower:]')
 
     echo "Expected: ${EXPECTED_HASH}"
@@ -55,7 +56,7 @@ if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; t
 
     # Extract using PowerShell
     echo "Extracting OpenBLAS to ${INSTALL_DIR}..."
-    powershell -Command "Expand-Archive -Path 'openblas_${OPENBLAS_ARCH}.zip' -DestinationPath '${INSTALL_DIR}' -Force"
+    powershell -Command "Expand-Archive -Path 'openblas-${OPENBLAS_ARCH}.zip' -DestinationPath '${INSTALL_DIR}' -Force"
 
     dir "${INSTALL_DIR}"
     dir "${INSTALL_DIR}/bin"
