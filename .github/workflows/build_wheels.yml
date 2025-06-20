@@ -30,6 +30,9 @@ jobs:
       upload_official_pypi: ${{ steps.config.outputs.upload_official_pypi }}
     steps:
       - uses: actions/checkout@v4
+        with:
+            fetch-depth: 0
+            fetch-tags: true
 
       - name: Load and set configuration
         id: config
@@ -81,9 +84,11 @@ jobs:
           - os: macos-13
             platform: macos
             arch: x86_64
+            macos_target: 13.0
           - os: macos-14
             platform: macos
             arch: arm64
+            macos_target: 14.0
           - os: windows-latest
             platform: windows
             arch: AMD64
@@ -100,8 +105,6 @@ jobs:
             fftw_target: 32
 
     steps:
-      - uses: actions/checkout@v4
-
       # Checkout the specific commit from main kvxopt repo
       - name: Checkout kvxopt source
         uses: actions/checkout@v4
@@ -130,15 +133,6 @@ jobs:
           echo "ARCH=${{ matrix.arch }}" >> $GITHUB_ENV
           echo "BUILD_COMMIT=${{ needs.config.outputs.build_commit }}" >> $GITHUB_ENV
 
-      - name: Set macOS deployment target
-        if: runner.os == 'macOS'
-        run: |
-            if [[ "${{ matrix.os }}" == "macos-13" ]]; then
-                echo "MACOSX_DEPLOYMENT_TARGET=13.0" >> $GITHUB_ENV
-            elif [[ "${{ matrix.os }}" == "macos-14" ]]; then
-                echo "MACOSX_DEPLOYMENT_TARGET=14.0" >> $GITHUB_ENV
-            fi
-
       # Copy source to build location
       - name: Prepare source for building
         shell: bash
@@ -159,7 +153,7 @@ jobs:
 
 
           CIBW_ENVIRONMENT_MACOS: >
-            MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}
+            MACOSX_DEPLOYMENT_TARGET=${{ matrix.macos_target }}
             KVXOPT_BUILD_GLPK=1
             KVXOPT_BUILD_FFTW=1
             KVXOPT_BUILD_OSQP=1
@@ -211,8 +205,6 @@ jobs:
     needs: config
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
       - name: Checkout kvxopt source
         uses: actions/checkout@v4
         with:
