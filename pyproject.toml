@@ -34,7 +34,6 @@ local_scheme = "no-local-version"
 
 [tool.cibuildwheel]
 build = "cp39-* cp310-* cp311-* cp312-* cp313-* cp314-*"
-enable = "cpython-prerelease"
 skip = ["cp*-win32", "cp*-manylinux_i686", "pp*"]
 test-requires = ["numpy", "pytest"]
 test-command = [
