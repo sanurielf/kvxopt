@@ -16,16 +16,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.13', '3.14', '3.15']
         suite-sparse: [lib_suitesparse, src_suitesparse]
+        include:
+          - python-version: '3.15'
+            allow-prerelease: true
 
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: ${{ matrix.allow-prerelease || false }}
 
       - name: Load and set versions
         id: config

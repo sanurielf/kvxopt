@@ -20,7 +20,9 @@
  */
 
 #include "Python.h"
+#if PY_MAJOR_VERSION < 3 || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 12)
 #include "structmember.h"
+#endif
 #include "blas_redefines.h"
 
 #include "assert.h"
