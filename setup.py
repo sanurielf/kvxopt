@@ -156,9 +156,7 @@ GRB_INC_DIR = os.environ.get("KVXOPT_GRB_INC_DIR", GRB_INC_DIR)
 GRB_LIB = os.environ.get("KVXOPT_GRB_LIB",GRB_LIB)
 if type(GRB_LIB) is str: GRB_LIB = GRB_LIB.strip().split(';')
 MSVC = int(os.environ.get("KVXOPT_MSVC",MSVC)) == True
-PYTHON_REQUIRES = (
-    '>=3.5, !=3.0.*, !=3.1.*, '
-    '!=3.2.*, !=3.3.*, !=3.4.*')
+PYTHON_REQUIRES = '>=3.11'
 INSTALL_REQUIRES = os.environ.get("CVXOPT_INSTALL_REQUIRES",[])
 if type(INSTALL_REQUIRES) is str: INSTALL_REQUIRES = INSTALL_REQUIRES.strip().split(';')
 
