@@ -18,6 +18,9 @@ jobs:
       matrix:
         python-version: ['3.13', '3.14', '3.15']
         suite-sparse: [lib_suitesparse, src_suitesparse]
+        include:
+          - python-version: '3.15'
+            allow-prerelease: true
 
 
     steps:
@@ -26,6 +29,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: ${{ matrix.allow-prerelease || false }}
 
       - name: Load and set versions
         id: config
