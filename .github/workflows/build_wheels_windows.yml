@@ -60,7 +60,7 @@ jobs:
           echo "Building from commit: $(git rev-parse HEAD)"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.3.1
+        uses: pypa/cibuildwheel@v4.2.1
         env:
           CIBW_ARCHS_WINDOWS: ${{ matrix.arch }}
           SETUPTOOLS_SCM_PRETEND_VERSION: ${{ inputs.scm_version }}
